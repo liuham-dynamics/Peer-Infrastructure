@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.5.1" />
+    <PackageReference Include="SimpleBase" Version="4.3.0" />
+	  <PackageReference Include="Google.Protobuf" Version="3.30.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Transport\" />
+  </ItemGroup>
+
+</Project>
