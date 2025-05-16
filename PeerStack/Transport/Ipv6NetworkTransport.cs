@@ -9,34 +9,31 @@ using System.Threading.Tasks;
 
 namespace PeerStack.Transport
 {
-    /// <summary>
-    /// IPv4 transport network protocol
-    /// </summary>
-    public class Ipv4NetworkTransport : AIpNetworkTransport
+    public  class Ipv6NetworkTransport : AIpNetworkTransport
     {
-        private static readonly int AddressSize = IPAddress.Any.GetAddressBytes().Length;
+        private static readonly int AddressSize = IPAddress.IPv6Any.GetAddressBytes().Length;
 
         /// <summary>
         /// Network transport protocol code
         /// </summary>
-        public override uint Code => 4;
+        public override uint Code => 41;
 
         /// <summary>
         /// Network transport protocol name
         /// </summary>
-        public override string Name => "ip4";
+        public override string Name => "ip6";
 
         /// <summary>
-        /// Read IP address values from stream
+        /// Read IP values from stream
         /// </summary>
         /// <param name="stream">TextReader</param>
         /// <exception cref="FormatException"></exception>
         public override void ReadValue(TextReader stream)
         {
             base.ReadValue(stream);
-            if (Address.AddressFamily != AddressFamily.InterNetwork)
+            if (Address.AddressFamily != AddressFamily.InterNetworkV6)
             {
-                throw new FormatException(string.Format("'{0}' is not a valid IPv4 address.", Value));
+                throw new FormatException(string.Format("'{0}' is not a valid IPv6 address.", Value));
             }
         }
 
