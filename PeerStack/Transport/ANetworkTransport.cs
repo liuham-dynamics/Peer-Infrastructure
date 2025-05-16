@@ -24,16 +24,18 @@ namespace PeerStack.Transport
         /// </summary>
         static ANetworkTransport()
         {
+            Register<P2pNetworkProtocol>();
+            RegisterAlias<IpfsNetworkProtocol>();
             Register<Ipv4NetworkProtocol>();
             Register<Ipv6NetworkProtocol>();
             Register<TcpNetworkTransport>();
-            Register<UdpNetworkProtocol>();
-            Register<P2pNetworkProtocol>();
-            RegisterAlias<IpfsNetworkProtocol>();
+            Register<UdpNetworkTransport>();
+            Register<DccpNetworkTransport>();
+           
             Register<QuicNetworkProtocol>();
             Register<HttpNetworkProtocol>();
             Register<HttpsNetworkProtocol>();
-            Register<DccpNetworkProtocol>();
+         
             Register<SctpNetworkProtocol>();
             Register<WsNetworkProtocol>();
             Register<Libp2pWebrtcStarNetworkProtocol>();
