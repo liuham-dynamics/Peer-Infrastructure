@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace PeerStack.Transport
 {
+    /// <summary>
+    /// IPFS transport network protocol
+    /// </summary>
     public class IpfsNetworkTransport : P2pNetworkTransport
     {
         /// <summary>

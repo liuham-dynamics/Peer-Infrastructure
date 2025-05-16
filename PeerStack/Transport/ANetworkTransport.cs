@@ -34,6 +34,8 @@ namespace PeerStack.Transport
             Register<DccpNetworkTransport>();
             Register<SctpNetworkTransport>();
 
+            Register<OnionNetworkTransport>();
+
             Register<QuicNetworkProtocol>();
             Register<HttpNetworkProtocol>();
             Register<HttpsNetworkProtocol>();
@@ -43,7 +45,7 @@ namespace PeerStack.Transport
             Register<Libp2pWebrtcStarNetworkProtocol>();
             Register<UdtNetworkProtocol>();
             Register<UtpNetworkProtocol>();
-            Register<OnionNetworkProtocol>();
+           
             Register<Libp2pWebrtcDirectNetworkProtocol>();
             Register<P2pCircuitNetworkProtocol>();
             Register<DnsNetworkProtocol>();
