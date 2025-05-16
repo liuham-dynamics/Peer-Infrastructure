@@ -12,8 +12,4 @@
 	  <PackageReference Include="Google.Protobuf" Version="3.30.2" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Transport\" />
-  </ItemGroup>
-
 </Project>
