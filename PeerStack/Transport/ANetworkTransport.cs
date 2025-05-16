@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 namespace PeerStack.Transport
 {
     /// <summary>
-    ///   Metadata on an libp2p network address protocol.
+    ///  Definition for metadata on an libp2p network protocol.
     /// </summary>
     /// <remarks>
     ///   Protocols are defined at <see href="https://github.com/multiformats/multiaddr/blob/master/protocols.csv"/>.

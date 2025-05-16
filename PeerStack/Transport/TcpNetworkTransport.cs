@@ -59,7 +59,7 @@ namespace PeerStack.Transport
             }
             else
             {
-                throw new NullReferenceException("Stream content not a valid port number.");
+                throw new NullReferenceException("Stream content is empty.");
             }
         }
 
