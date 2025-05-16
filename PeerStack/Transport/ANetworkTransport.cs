@@ -24,8 +24,9 @@ namespace PeerStack.Transport
         /// </summary>
         static ANetworkTransport()
         {
-            Register<P2pNetworkProtocol>();
-            RegisterAlias<IpfsNetworkProtocol>();
+            Register<P2pNetworkTransport>();
+            RegisterAlias<IpfsNetworkTransport>();
+
             Register<Ipv4NetworkTransport>();
             Register<Ipv6NetworkTransport>();
             Register<TcpNetworkTransport>();
