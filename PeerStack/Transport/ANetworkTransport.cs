@@ -106,7 +106,7 @@ namespace PeerStack.Transport
         /// <remarks>
         ///   For tcp and udp this is the port number.  This can be <b>null</b> as is the case for http and https.
         /// </remarks>
-        public string Value { get; set; }
+        public string Value { get; set; } = string.Empty;
 
         /// <summary>
         ///   Writes the binary representation to the specified <see cref="Stream"/>.

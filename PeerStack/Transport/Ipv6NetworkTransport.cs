@@ -9,7 +9,10 @@ using System.Threading.Tasks;
 
 namespace PeerStack.Transport
 {
-    public  class Ipv6NetworkTransport : AIpNetworkTransport
+    /// <summary>
+    /// IPv6 transport network protocol
+    /// </summary>
+    public class Ipv6NetworkTransport : AIpNetworkTransport
     {
         private static readonly int AddressSize = IPAddress.IPv6Any.GetAddressBytes().Length;
 

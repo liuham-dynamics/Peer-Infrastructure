@@ -20,7 +20,7 @@ namespace PeerStack.Transport
         /// <summary>
         /// An internet protocol address
         /// </summary>
-        public required IPAddress Address { get; set; }
+        public IPAddress Address { get; set; } = IPAddress.None;
 
         /// <summary>
         /// Read address from stream
