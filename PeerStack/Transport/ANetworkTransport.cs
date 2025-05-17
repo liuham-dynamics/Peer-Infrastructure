@@ -39,20 +39,22 @@ namespace PeerStack.Transport
             Register<QuicNetworkTransport>(); // TODO: Review Implementation
             Register<HttpNetworkTransport>();
             Register<HttpsNetworkTransport>();
-         
-           
-            Register<WsNetworkProtocol>();
-            Register<Libp2pWebrtcStarNetworkProtocol>();
+          
+            Register<WsNetworkTransport>();
+            Register<WssNetworkProtocol>();
+
             Register<UdtNetworkProtocol>();
             Register<UtpNetworkProtocol>();
-           
+
+            Register<Libp2pWebrtcStarNetworkProtocol>();
             Register<Libp2pWebrtcDirectNetworkProtocol>();
+
             Register<P2pCircuitNetworkProtocol>();
             Register<DnsNetworkProtocol>();
             Register<Dns4NetworkProtocol>();
             Register<Dns6NetworkProtocol>();
             Register<DnsAddrNetworkProtocol>();
-            Register<WssNetworkProtocol>();
+        
             Register<IpcidrNetworkProtocol>();
         }
 
