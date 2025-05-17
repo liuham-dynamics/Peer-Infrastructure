@@ -37,8 +37,8 @@ namespace PeerStack.Transport
             Register<OnionNetworkTransport>();
 
             Register<QuicNetworkTransport>(); // TODO: Review Implementation
-            Register<HttpNetworkProtocol>();
-            Register<HttpsNetworkProtocol>();
+            Register<HttpNetworkTransport>();
+            Register<HttpsNetworkTransport>();
          
            
             Register<WsNetworkProtocol>();
