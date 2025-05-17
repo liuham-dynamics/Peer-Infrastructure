@@ -41,13 +41,13 @@ namespace PeerStack.Transport
             Register<HttpsNetworkTransport>();
           
             Register<WsNetworkTransport>();
-            Register<WssNetworkProtocol>();
+            Register<WssNetworkTransport>();
+
+            Register<WebRtcNetworkTransport>();
+            Register<WebRtcDirectNetworkTransport>();
 
             Register<UdtNetworkProtocol>();
             Register<UtpNetworkProtocol>();
-
-            Register<Libp2pWebrtcStarNetworkProtocol>();
-            Register<Libp2pWebrtcDirectNetworkProtocol>();
 
             Register<P2pCircuitNetworkProtocol>();
             Register<DnsNetworkProtocol>();
