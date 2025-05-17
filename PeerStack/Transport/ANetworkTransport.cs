@@ -49,7 +49,7 @@ namespace PeerStack.Transport
             Register<UdtNetworkTransport>();
             Register<UtpNetworkTransport>();
 
-            Register<P2pCircuitNetworkProtocol>();
+            Register<CircuitNetworkTransport>();
 
             Register<DnsNetworkProtocol>();
             Register<Dns4NetworkProtocol>();
