@@ -51,10 +51,10 @@ namespace PeerStack.Transport
 
             Register<CircuitNetworkTransport>();
 
-            Register<DnsNetworkProtocol>();
+            Register<DnsNetworkTransport>();
             Register<Dns4NetworkProtocol>();
             Register<Dns6NetworkProtocol>();
-            Register<DnsAddrNetworkProtocol>();
+            Register<DnsAddressNetworkTransport>();
         
             Register<IpcidrNetworkProtocol>();
         }
