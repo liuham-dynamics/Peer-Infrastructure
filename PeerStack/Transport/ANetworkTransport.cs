@@ -16,9 +16,9 @@ namespace PeerStack.Transport
     /// <seealso cref="MultiAddress"/>
     public abstract class ANetworkTransport
     {
-        private static readonly HashSet<Type> _memberNetworkProtocols = [];
-        private static readonly Dictionary<string, uint> _memberProtocolCache = [];
-         
+        //
+        private static readonly Dictionary<KeyValuePair<string, uint>, Type> _memberNetworkProtocols = [];
+
         /// <summary>
         ///   The libp2p numeric code assigned to the network protocol.
         /// </summary>
@@ -37,14 +37,14 @@ namespace PeerStack.Transport
         ///   This can be <b>null</b> as is the case for http and https.
         /// </remarks>
         public string Value { get; set; } = string.Empty;
-        
+
         /// <summary>
         ///   A collection of registered protocols.
         /// </summary>
         /// <remarks>
         ///  Abstract network transport types based on registered protocols.
         /// </remarks>
-        public IEnumerable<Type> Protocols => _memberNetworkProtocols;
+        public static IEnumerable<Type> Protocols => _memberNetworkProtocols.Values;
 
         /// <summary>
         /// Registers the standard network transports/protocols for libp2p.
@@ -52,7 +52,7 @@ namespace PeerStack.Transport
         static ANetworkTransport()
         {
             Register<P2pNetworkTransport>();
-            RegisterAlias<IpfsNetworkTransport>();
+            Register<IpfsNetworkTransport>();
 
             Register<IpCidrNetworkTransport>();
 
@@ -96,29 +96,48 @@ namespace PeerStack.Transport
         public static void Register<T>() where T : ANetworkTransport, new()
         {
             var protocol = new T(); //
-            if (_memberProtocolCache.ContainsValue(protocol.Code))
+            var key = new KeyValuePair<string, uint>(protocol.Name, protocol.Code);
+            if (_memberNetworkProtocols.ContainsKey(key))
             {
-                throw new ArgumentException(string.Format("The libp2p protocol code ({0}) is already defined.", protocol.Code));
+                throw new ArgumentException(string.Format("The libp2p protocol '{0}' is already defined.", protocol.Code));
             }
-            _memberProtocolCache.Add(protocol.Name, protocol.Code);
-            _memberNetworkProtocols.Add(typeof(T));
+            _memberNetworkProtocols.Add(key, typeof(T));
         }
 
-        /// <summary>
-        ///   Register an alias to another network protocol.
-        /// </summary>
-        /// <typeparam name="T">
-        ///   A <see cref="ANetworkTransport"/> to register.
-        /// </typeparam>
-        public static void RegisterAlias<T>() where T : ANetworkTransport, new()
+        /// <Inheridoc>
+        public static Type? GetProtocol(uint code)
         {
-            var protocol = new T(); //
-            if (_memberProtocolCache.ContainsKey(protocol.Name))
+            Type? protocolType = default;
+            foreach (var key in _memberNetworkProtocols.Keys)
             {
-                throw new ArgumentException(string.Format("The libp2p protocol '{0}' is already defined.", protocol.Name));
+                if (key.Value == code)
+                {
+                    // get associated type
+                    protocolType = _memberNetworkProtocols[key];
+                                    break; // break iteration
+                }
             }
-            _memberProtocolCache.Add(protocol.Name, protocol.Code);
-            _memberNetworkProtocols.Add(typeof(T));
+
+            // return type
+            return protocolType;
+        }
+
+        /// <Inheridoc>
+        public static Type? GetProtocol(string name)
+        {
+            Type? protocolType = default;
+            foreach (var key in _memberNetworkProtocols.Keys)
+            {
+                if (key.Key == name)
+                {
+                    // get associated type
+                    protocolType = _memberNetworkProtocols[key];
+                                    break; // break iteration
+                }
+            }
+
+            // return type
+            return protocolType;
         }
 
         /// <summary>
