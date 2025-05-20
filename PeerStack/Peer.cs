@@ -15,8 +15,9 @@ namespace PeerStack
     /// </remarks>
     public class Peer : IEquatable<Peer>
     {
-        private static readonly MultiAddress[] noAddress = Array.Empty<MultiAddress>();
         private const string unknown = "unknown/0.0";
+        private static readonly MultiAddress[] noAddress = [];
+       
 
         /// <summary>
         ///   Universally unique identifier.
@@ -26,7 +27,7 @@ namespace PeerStack
         ///   <see cref="PublicKey"/>.
         /// </value>
         /// <seealso href="https://github.com/libp2p/specs/pull/100"/>
-        public MultiHash Id { get; set; }
+        public   MultiHash Id { get; set; }
 
         /// <summary>
         ///   The public key of the node.
@@ -39,7 +40,7 @@ namespace PeerStack
         ///   a type and the DER encoding of the PKCS Subject Public Key Info.
         /// </remarks>
         /// <seealso href="https://tools.ietf.org/html/rfc5280#section-4.1.2.7"/>
-        public string PublicKey { get; set; }
+        public  string PublicKey { get; set; }
 
         /// <summary>
         ///   The multiple addresses of the node.
@@ -153,7 +154,7 @@ namespace PeerStack
         ///   Returns the <see cref="Base58"/> encoding of the <see cref="Id"/>.
         /// </summary>
         /// <returns>
-        ///   A Base58 representaton of the peer.
+        ///   A Base58 representation of the peer.
         /// </returns>
         public override string ToString()
         {

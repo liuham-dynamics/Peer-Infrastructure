@@ -1,14 +1,6 @@
 ﻿using Google.Protobuf;
-using Microsoft.Win32;
 using PeerStack.Encoding;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 namespace PeerStack.Multiformat
 {
@@ -30,16 +22,8 @@ namespace PeerStack.Multiformat
     /// <seealso href="https://github.com/ipld/cid"/>
     public class Cid : IEquatable<Cid>
     {
-        ///// <summary>
-        /////   The default <see cref="ContentType"/>.
-        ///// </summary>
-        //public const string DefaultContentType = "dag-pb";
-
-        //private int version;
-
-        //private MultiHash codec;
-        //private string contentType = DefaultContentType;
-        //private string encoding = MultiBase.DefaultAlgorithmName;
+        //
+        private const string defaultContentType = "dag-pb";
         private string? encodedValue;
 
         /// <summary>
@@ -63,7 +47,7 @@ namespace PeerStack.Multiformat
         ///   </para>
         ///   The default <see cref="Encoding"/> is "base32" when the <see cref="Version"/> is not zero.
         /// </remarks>
-        public int Version { get; set; } = 0;
+        public int Version { get; init; } = 0;
 
         /// <summary>
         /// The <see cref="MultiBase"/> encoding of the CID.
@@ -72,7 +56,7 @@ namespace PeerStack.Multiformat
         ///   base58btc, base32, base64, etc.  Defaults to <see cref="MultiBase.DefaultAlgorithmName"/>.
         /// </value>
         /// <seealso cref="MultiBase"/>
-        public string Encoding { get; set; } = MultiBase.DefaultAlgorithmName;
+        public string Encoding { get; init; } = MultiBase.DefaultAlgorithmName;
 
         /// <summary>
         ///   The content type or format of the data being addressed.
@@ -81,9 +65,12 @@ namespace PeerStack.Multiformat
         ///   dag-pb, dag-cbor, dag-json, etc.  Defaults to "dag-pb".
         /// </value>
         /// <seealso cref="MultiCodec"/>
-        public string ContentType { get; set; } = "dag-pb";
-         
-        public MultiHash Hash { get; set; }
+        public string ContentType { get; init; } = defaultContentType;
+
+        /// <summary>
+        /// Well-known established cryptographic function
+        /// </summary>
+        public MultiHash Hash { get; init; }
 
         /// <summary>
         ///   Creates a default CID object for version 1
@@ -91,7 +78,7 @@ namespace PeerStack.Multiformat
         public Cid()
         {
             Version = 1;
-            ContentType = string.Empty;
+            ContentType = defaultContentType;
             Encoding = string.Empty;
             Hash = MultiHash.DefaultAlgorithmName;
         }
@@ -175,14 +162,22 @@ namespace PeerStack.Multiformat
                     using (var ms = new MemoryStream(buffer, false))
                     {
                         Version = ms.ReadVarint32();
-                       Hash = new MultiHash(ms);
+                        Hash = new MultiHash(ms);
 
                         var codec = ms.ReadMultiCodec();
                         if (codec is null || string.IsNullOrEmpty(codec?.Name))
                         {
                             throw new InvalidDataException("Invalid CID codec.");
                         }
-                       ContentType = codec!.Name;
+                        ContentType = codec!.Name;
+
+                        // default to base32 - no padding 
+                        var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == 'b');
+                        if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                        {
+                            throw new InvalidDataException("Invalid CID encoding.");
+                        }
+                        Encoding = encoding!.Name;
                     }
                 }
             }
@@ -219,6 +214,14 @@ namespace PeerStack.Multiformat
                         throw new InvalidDataException("Invalid CID codec.");
                     }
                     ContentType = codec!.Name;
+
+                    // default to base32 - no padding 
+                    var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == 'b');
+                    if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                    {
+                        throw new InvalidDataException("Invalid CID encoding.");
+                    }
+                    Encoding = encoding!.Name;
                 }
                 Hash = new MultiHash(stream);
             }
@@ -227,6 +230,18 @@ namespace PeerStack.Multiformat
                 throw new FormatException($"Invalid CID '{stream}'.", e);
             }
         }
+
+        /// <summary>
+        ///   Creates a default CID object for version 1
+        /// </summary>
+        public Cid(int version, string contentType, string encoding, MultiHash hash)
+        {
+            Version = version;
+            ContentType = contentType;
+            Encoding = encoding;
+            Hash = hash;
+        }
+
 
         /// <summary>
         ///   Converts the CID to its equivalent string representation.
@@ -273,36 +288,33 @@ namespace PeerStack.Multiformat
                 // SHA2-256 MultiHash is CID v0.
                 if (input.Length == 46 && input.StartsWith("Qm"))
                 {
-                    return (Cid)new MultiHash(input);
+                    return new Cid(0, defaultContentType, MultiBase.DefaultAlgorithmName, new MultiHash(input));
                 }
-
-                using (var ms = new MemoryStream(MultiBase.Decode(input), false))
+                else
                 {
-                    var v = ms.ReadVarint32();
-                    if (v > 3)
+                    using (var ms = new MemoryStream(MultiBase.Decode(input), false))
                     {
-                        throw new InvalidDataException($"Unknown CID version '{v}'.");
-                    }
+                        var v = ms.ReadVarint32();
+                        if (v > 3)
+                        {
+                            throw new InvalidDataException($"Unknown CID version '{v}'.");
+                        }
 
-                    var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == input[0]);
-                    if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
-                    {
-                        throw new InvalidDataException("Invalid CID encoding.");
-                    }
+                        var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == input[0]);
+                        if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                        {
+                            throw new InvalidDataException("Invalid CID encoding.");
+                        }
 
-                    var codec = ms.ReadMultiCodec();
-                    if (codec is null || string.IsNullOrEmpty(codec?.Name))
-                    {
-                        throw new InvalidDataException("Invalid CID codec.");
-                    }
+                        var codec = ms.ReadMultiCodec();
+                        if (codec is null || string.IsNullOrEmpty(codec?.Name))
+                        {
+                            throw new InvalidDataException("Invalid CID codec.");
+                        }
 
-                    return new Cid
-                    {
-                        Version = v,
-                        Encoding = encoding!.Name,
-                        ContentType = codec!.Name,
-                        Hash = new MultiHash(ms)
-                    };
+                        //
+                        return new Cid(v, codec!.Name, encoding!.Name, new MultiHash(ms));
+                    }
                 }
             }
             catch (Exception e)
@@ -325,28 +337,47 @@ namespace PeerStack.Multiformat
         /// </remarks>
         public static Cid Read(byte[] buffer)
         {
-            var cid = new Cid();
             if (buffer.Length == 34)
             {
-                cid.Version = 0;
-                cid.Hash = new MultiHash(buffer);
-                return cid;
+                return new Cid(0, defaultContentType, MultiBase.DefaultAlgorithmName, new MultiHash(buffer));
             }
-
-            using (var ms = new MemoryStream(buffer, false))
+            else
             {
-                cid.Version = ms.ReadVarint32();
-                cid.Hash = new MultiHash(ms);
-
-                var codec = ms.ReadMultiCodec();
-                if (codec is null || string.IsNullOrEmpty(codec?.Name))
+                using (var ms = new MemoryStream(buffer, false))
                 {
-                    throw new InvalidDataException("Invalid CID codec.");
+
+                    var codec = ms.ReadMultiCodec();
+                    if (codec is null || string.IsNullOrEmpty(codec?.Name))
+                    {
+                        throw new InvalidDataException("Invalid CID codec.");
+                    }
+
+                    // default to base32 - no padding 
+                    var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == 'b');
+                    if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                    {
+                        throw new InvalidDataException("Invalid CID encoding.");
+                    }
+
+                    //
+                    return new Cid(ms.ReadVarint32(), codec!.Name, encoding!.Name, new MultiHash(ms));
                 }
-                cid.ContentType = codec!.Name;
-                return cid;
             }
         }
+
+        /// <summary>
+        ///   Reads the binary representation of the CID from the specified byte array.
+        /// </summary>
+        /// <param name="buffer">
+        ///   The source of a CID.
+        /// </param>
+        /// <returns>
+        ///   A new <see cref="Cid"/>.
+        /// </returns>
+        /// <remarks>
+        ///   The buffer does NOT start with a Varint length prefix.
+        /// </remarks>
+        public static Cid Read(Span<byte> buffer) => Read(buffer.ToArray());
 
         /// <summary>
         ///   Reads the binary representation of the CID from the specified <see cref="Stream"/>.
@@ -359,25 +390,29 @@ namespace PeerStack.Multiformat
         /// </returns>
         public static Cid Read(Stream stream)
         {
-            var cid = new Cid();
             var length = stream.ReadVarint32();
             if (length == 34)
             {
-                cid.Version = 0;
+                return new Cid(0, defaultContentType, MultiBase.DefaultAlgorithmName, new MultiHash(stream));
             }
             else
             {
-                cid.Version = stream.ReadVarint32();
                 var codec = stream.ReadMultiCodec();
                 if (codec is null || string.IsNullOrEmpty(codec?.Name))
                 {
                     throw new InvalidDataException("Invalid CID codec.");
                 }
-                cid.ContentType = codec!.Name;
-            }
-            cid.Hash = new MultiHash(stream);
 
-            return cid;
+                // default to base32 - no padding 
+                var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == 'b');
+                if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                {
+                    throw new InvalidDataException("Invalid CID encoding.");
+                }
+
+                //
+                return new Cid(stream.ReadVarint32(), codec!.Name, encoding!.Name, new MultiHash(stream));
+            }
         }
 
         /// <summary>
@@ -391,25 +426,29 @@ namespace PeerStack.Multiformat
         /// </returns>
         public static Cid Read(CodedInputStream stream)
         {
-            var cid = new Cid();
             var length = stream.ReadLength();
             if (length == 34)
             {
-                cid.Version = 0;
+                return new Cid(0, defaultContentType, MultiBase.DefaultAlgorithmName, new MultiHash(stream));
             }
             else
             {
-                cid.Version = stream.ReadInt32();
                 var codec = stream.ReadMultiCodec();
                 if (codec is null || string.IsNullOrEmpty(codec?.Name))
                 {
                     throw new InvalidDataException("Invalid CID codec.");
                 }
-                cid.ContentType = codec!.Name;
-            }
-            cid.Hash = new MultiHash(stream);
 
-            return cid;
+                // default to base32 - no padding 
+                var encoding = MultiBaseCoder.Codecs.FirstOrDefault(o => o.Code == 'b');
+                if (encoding is null || string.IsNullOrEmpty(encoding?.Name))
+                {
+                    throw new InvalidDataException("Invalid CID encoding.");
+                }
+
+                //
+                return new Cid(stream.ReadInt32(), codec!.Name, encoding!.Name, new MultiHash(stream));
+            }
         }
 
         /// <summary>
@@ -467,7 +506,7 @@ namespace PeerStack.Multiformat
         /// <remarks>
         ///   The buffer does NOT start with a varint length prefix.
         /// </remarks>
-        public byte[] ToArray()
+        public Span<byte> AsSpan()
         {
             if (Version == 0)
             {
@@ -502,7 +541,7 @@ namespace PeerStack.Multiformat
                     Hash = hash,
                     Version = 0,
                     Encoding = "base58btc",
-                    ContentType = "dag-pb"
+                    ContentType = defaultContentType
                 };
             }
 
