@@ -20,7 +20,7 @@ namespace PeerStack.Multiformat
     ///   </note>
     /// </remarks>
     /// <seealso href="https://github.com/ipld/cid"/>
-    public class Cid : IEquatable<Cid>
+    public sealed class Cid : IEquatable<Cid>
     {
         //
         private const string defaultContentType = "dag-pb";

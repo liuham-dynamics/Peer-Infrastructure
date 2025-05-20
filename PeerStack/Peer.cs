@@ -13,42 +13,51 @@ namespace PeerStack
     /// <remarks>
     ///   Equality is based solely on the peer's <see cref="Id"/>.
     /// </remarks>
-    public class Peer : IEquatable<Peer>
+    public sealed class Peer : IEquatable<Peer>
     {
+        //
         private const string unknown = "unknown/0.0";
-        private static readonly MultiAddress[] noAddress = [];
+        private static readonly HashSet<MultiAddress> _memberAddresses = [];
        
 
         /// <summary>
-        ///   Universally unique identifier.
+        /// Universally unique identifier.
         /// </summary>
         /// <value>
         ///   This is the <see cref="MultiHash"/> of the peer's protobuf encoded
         ///   <see cref="PublicKey"/>.
         /// </value>
         /// <seealso href="https://github.com/libp2p/specs/pull/100"/>
-        public   MultiHash Id { get; set; }
+        public required MultiHash Id { get; set; }
 
         /// <summary>
         ///   The public key of the node.
         /// </summary>
         /// <value>
-        ///   The base 64 encoding of the node's public key.  The default is <b>null</b>
+        ///   The base 64 encoding of the node's public key.  The default is an empty string
         /// </value>
         /// <remarks>
         ///   The IPFS public key is the base-64 encoding of a protobuf encoding containing
         ///   a type and the DER encoding of the PKCS Subject Public Key Info.
         /// </remarks>
         /// <seealso href="https://tools.ietf.org/html/rfc5280#section-4.1.2.7"/>
-        public  string PublicKey { get; set; }
+        public  string PublicKey { get; set; } = string.Empty;
 
         /// <summary>
-        ///   The multiple addresses of the node.
+        ///   The <see cref="MultiAddress"/> that the peer is connected on.
         /// </summary>
         /// <value>
-        ///   Where the peer can be found.  The default is an empty sequence.
+        ///   <b>null</b> when the peer is not connected to.
         /// </value>
-        public IEnumerable<MultiAddress> Addresses { get; set; } = noAddress;
+        public MultiAddress ConnectedAddress { get; set; }
+
+        /// <summary>
+        /// The multiple addresses of the node.
+        /// </summary>
+        /// <value>
+        ///   Where the peer can be found. The default is an empty set.
+        /// </value>
+        public IEnumerable<MultiAddress> Addresses { get; set; } = _memberAddresses;
 
         /// <summary>
         ///   The name and version of the IPFS software.
@@ -57,8 +66,8 @@ namespace PeerStack
         ///   For example "go-ipfs/0.4.17/".
         /// </value>
         /// <remarks>
-        ///   There is no specification that describes the agent version string.  The default
-        ///   is "unknown/0.0".
+        ///   There is no specification that describes the agent version string.  
+        ///   The default is "unknown/0.0".
         /// </remarks>
         public string AgentVersion { get; set; } = unknown;
 
@@ -69,18 +78,10 @@ namespace PeerStack
         ///   For example "ipfs/0.1.0".
         /// </value>
         /// <remarks>
-        ///   There is no specification that describes the protocol version string. The default
-        ///   is "unknown/0.0".
+        ///   There is no specification that describes the protocol version string. 
+        ///   The default is "unknown/0.0".
         /// </remarks>
         public string ProtocolVersion { get; set; } = unknown;
-
-        /// <summary>
-        ///   The <see cref="MultiAddress"/> that the peer is connected on.
-        /// </summary>
-        /// <value>
-        ///   <b>null</b> when the peer is not connected to.
-        /// </value>
-        public MultiAddress ConnectedAddress { get; set; }
 
         /// <summary>
         /// The round-trip time it takes to get data from the peer.
@@ -102,12 +103,8 @@ namespace PeerStack
         /// </remarks>
         public bool IsValid()
         {
-            if (Id == null)
-                return false;
-            if (PublicKey != null && !Id.Matches(Convert.FromBase64String(PublicKey)))
-                return false;
-
-            return true;
+            return Id is null ? false 
+                              : PublicKey == null || Id.Matches(Convert.FromBase64String(PublicKey));
         }
 
         /// <inheritdoc />
@@ -117,33 +114,28 @@ namespace PeerStack
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var that = obj as Peer;
-            return (that != null)
-               && this.Equals(that);
+            return (that is not null) && Equals(that);
         }
 
         /// <inheritdoc />
-        public bool Equals(Peer that)
+        public bool Equals(Peer? that)
         {
-            return this.Id == that.Id;
+            return that is not null && Id == that.Id;
         }
 
         /// <summary>
-        ///   Value equality.
+        /// Value equality.
         /// </summary>
         public static bool operator ==(Peer a, Peer b)
         {
-            if (ReferenceEquals(a, b)) return true;
-            if (a is null) return false;
-            if (b is null) return false;
-
-            return a.Equals(b);
+            return ReferenceEquals(a, b) || (a is not null && b is not null && a.Equals(b));
         }
 
         /// <summary>
-        ///   Value inequality.
+        /// Value inequality.
         /// </summary>
         public static bool operator !=(Peer a, Peer b)
         {
@@ -151,14 +143,14 @@ namespace PeerStack
         }
 
         /// <summary>
-        ///   Returns the <see cref="Base58"/> encoding of the <see cref="Id"/>.
+        /// Returns the <see cref="Base58"/> encoding of the <see cref="Id"/>.
         /// </summary>
         /// <returns>
-        ///   A Base58 representation of the peer.
+        /// A Base58 representation of the peer.
         /// </returns>
         public override string ToString()
         {
-            return Id == null ? string.Empty : Id.ToBase58();
+            return Id is null ? string.Empty : Id.ToBase58();
         }
 
         /// <summary>
