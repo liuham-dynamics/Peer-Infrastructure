@@ -34,7 +34,7 @@ namespace PeerStack.Multiformat
         ///   Gets the peer ID of the multiaddress.
         /// </summary>
         /// <value>
-        ///   The <see cref="Peer.Id"/> as a <see cref="MultiHash"/>.
+        ///   The <see cref="Peer.Identifier"/> as a <see cref="MultiHash"/>.
         /// </value>
         /// <exception cref="Exception">
         ///   When the last <see cref="Protocols">nTransport</see> is not "ipfs" nor "p2p".

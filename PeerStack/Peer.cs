@@ -11,7 +11,7 @@ namespace PeerStack
     ///   A daemon node on the IPFS network.
     /// </summary>
     /// <remarks>
-    ///   Equality is based solely on the peer's <see cref="Id"/>.
+    ///   Equality is based solely on the peer's <see cref="Identifier"/>.
     /// </remarks>
     public sealed class Peer : IEquatable<Peer>
     {
@@ -28,7 +28,7 @@ namespace PeerStack
         ///   <see cref="PublicKey"/>.
         /// </value>
         /// <seealso href="https://github.com/libp2p/specs/pull/100"/>
-        public required MultiHash Id { get; set; }
+        public required MultiHash Identifier { get; set; }
 
         /// <summary>
         ///   The public key of the node.
@@ -97,14 +97,14 @@ namespace PeerStack
         /// <remarks>
         ///    Verifies that
         ///    <list type="bullet">
-        ///      <item><description>The <see cref="Id"/> is defined</description></item>
-        ///      <item><description>The <see cref="Id"/> is a hash of the <see cref="PublicKey"/></description></item>
+        ///      <item><description>The <see cref="Identifier"/> is defined</description></item>
+        ///      <item><description>The <see cref="Identifier"/> is a hash of the <see cref="PublicKey"/></description></item>
         ///    </list>
         /// </remarks>
         public bool IsValid()
         {
-            return Id is null ? false 
-                              : PublicKey == null || Id.Matches(Convert.FromBase64String(PublicKey));
+            return Identifier is null ? false 
+                              : PublicKey == null || Identifier.Matches(Convert.FromBase64String(PublicKey));
         }
 
         /// <inheritdoc />
@@ -123,7 +123,7 @@ namespace PeerStack
         /// <inheritdoc />
         public bool Equals(Peer? that)
         {
-            return that is not null && Id == that.Id;
+            return that is not null && Identifier == that.Identifier;
         }
 
         /// <summary>
@@ -143,31 +143,31 @@ namespace PeerStack
         }
 
         /// <summary>
-        /// Returns the <see cref="Base58"/> encoding of the <see cref="Id"/>.
+        /// Returns the <see cref="Base58"/> encoding of the <see cref="Identifier"/>.
         /// </summary>
         /// <returns>
         /// A Base58 representation of the peer.
         /// </returns>
         public override string ToString()
         {
-            return Id is null ? string.Empty : Id.ToBase58();
+            return Identifier is null ? string.Empty : Identifier.ToBase58();
         }
 
         /// <summary>
         ///   Implicit casting of a <see cref="string"/> to a <see cref="Peer"/>.
         /// </summary>
         /// <param name="s">
-        ///   A <see cref="Base58"/> encoded <see cref="Id"/>.
+        ///   A <see cref="Base58"/> encoded <see cref="Identifier"/>.
         /// </param>
         /// <returns>
         ///   A new <see cref="Peer"/>.
         /// </returns>
         /// <remarks>
-        ///    Equivalent to <code>new Peer { Id = s }</code>
+        ///    Equivalent to <code>new Peer { Identifier = s }</code>
         /// </remarks>
         public static implicit operator Peer(string s)
         {
-            return new Peer { Id = s };
+            return new Peer { Identifier = s };
         }
     }
 }
