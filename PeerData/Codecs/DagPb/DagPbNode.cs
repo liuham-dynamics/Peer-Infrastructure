@@ -9,10 +9,10 @@ namespace PeerData.Codecs.DagPb
     /// A node in the IPLD Merkle DAG.
     /// </summary>
     /// <remarks>
-    /// A <b>DagNode</b> has opaque <see cref="DagNode.DataBytes"/> and a set of navigable <see cref="DagNode.Links"/>.
+    /// A <b>DagNode</b> has opaque <see cref="DagPbNode.DataBytes"/> and a set of navigable <see cref="DagPbNode.Links"/>.
     /// </remarks>
     [DataContract]
-    public class DagNode : IMerkleNode<IMerkleLink>
+    public class DagPbNode : IMerkleNode<IMerkleLink>
     {
         private Cid id = new();
         private long? size;
@@ -91,8 +91,8 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// Create a new instance of a <see cref="DagNode"/> with the 
-        /// specified <see cref="DagNode.DataBytes"/> and <see cref="DagNode.Links"/>
+        /// Create a new instance of a <see cref="DagJsonNode"/> with the 
+        /// specified <see cref="DagJsonNode.DataBytes"/> and <see cref="DagJsonNode.Links"/>
         /// </summary>
         /// <param name="data">
         ///   The opaque data, can be <b>null</b>.
@@ -104,7 +104,7 @@ namespace PeerData.Codecs.DagPb
         ///   The name of the hashing algorithm to use; defaults to
         ///   <see cref="MultiHash.DefaultAlgorithmName"/>.
         /// </param>
-        public DagNode(byte[]? data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
+        public DagPbNode(byte[]? data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
         {
             DataBytes = data ?? [];
             if (links is not null)
@@ -119,26 +119,26 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagNode"/> class from the
+        /// Creates a new instance of the <see cref="DagJsonNode"/> class from the
         /// specified <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
         /// A <see cref="Stream"/> containing the binary representation of the <b>DagNode</b>.
         /// </param>
-        public DagNode(Stream stream)
+        public DagPbNode(Stream stream)
         {
             DataBytes = [];
             Read(stream);
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagNode"/> class from the
+        /// Creates a new instance of the <see cref="DagJsonNode"/> class from the
         /// specified <see cref="CodedInputStream"/>.
         /// </summary>
         /// <param name="stream">(
         /// A <see cref="CodedInputStream"/> containing the binary representation of the <b>DagNode</b>.
         /// </param>
-        public DagNode(CodedInputStream stream)
+        public DagPbNode(CodedInputStream stream)
         {
             DataBytes = [];
             Read(stream);
@@ -151,16 +151,16 @@ namespace PeerData.Codecs.DagPb
         /// The link to add.
         /// </param>
         /// <returns>
-        /// A new <see cref="DagNode"/> with the existing and new links.
+        /// A new <see cref="DagJsonNode"/> with the existing and new links.
         /// </returns>
         /// <remarks>
         /// A <b>DagNode</b> is immutable.
         /// </remarks>
-        public DagNode AddLink(IMerkleLink link)
+        public DagPbNode AddLink(IMerkleLink link)
         {
             var newLinks = new List<IMerkleLink>(links) { link };
             newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-            return new DagNode(DataBytes, newLinks, hashAlgorithm);
+            return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
@@ -170,17 +170,17 @@ namespace PeerData.Codecs.DagPb
         /// The sequence of links to add.
         /// </param>
         /// <returns>
-        /// A new <see cref="DagNode"/> with the existing and new links.
+        /// A new <see cref="DagJsonNode"/> with the existing and new links.
         /// </returns>
         /// <remarks>
         /// A <b>DagNode</b> is immutable.
         /// </remarks>
-        public DagNode AddLinks(IEnumerable<IMerkleLink> links)
+        public DagPbNode AddLinks(IEnumerable<IMerkleLink> links)
         {
             var newLinks = new List<IMerkleLink>(this.links);
             newLinks.AddRange(links);
             newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-            return new DagNode(DataBytes, newLinks, hashAlgorithm);
+            return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
@@ -190,7 +190,7 @@ namespace PeerData.Codecs.DagPb
         /// The <see cref="IMerkleLink"/> to remove.
         /// </param>
         /// <returns>
-        /// A new <see cref="DagNode"/> with the <paramref name="link"/> removed.
+        /// A new <see cref="DagJsonNode"/> with the <paramref name="link"/> removed.
         /// </returns>
         /// <remarks>
         /// A <b>DagNode</b> is immutable.
@@ -198,11 +198,11 @@ namespace PeerData.Codecs.DagPb
         /// No exception is raised if the <paramref name="link"/> does not exist.
         /// </para>
         /// </remarks>
-        public DagNode RemoveLink(IMerkleLink link)
+        public DagPbNode RemoveLink(IMerkleLink link)
         {
             var newLinks = new List<IMerkleLink>(links);
             newLinks.RemoveAll(l => l.Equals(link));
-            return new DagNode(DataBytes, newLinks, hashAlgorithm);
+            return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
@@ -212,7 +212,7 @@ namespace PeerData.Codecs.DagPb
         /// The sequence of <see cref="IMerkleLink"/> to remove.
         /// </param>
         /// <returns>
-        /// A new <see cref="DagNode"/> with the <paramref name="links"/> removed.
+        /// A new <see cref="DagJsonNode"/> with the <paramref name="links"/> removed.
         /// </returns>
         /// <remarks>
         /// A <b>DagNode</b> is immutable.
@@ -220,11 +220,11 @@ namespace PeerData.Codecs.DagPb
         /// No exception is raised if any of the <paramref name="links"/> do not exist.
         /// </para>
         /// </remarks>
-        public DagNode RemoveLinks(IEnumerable<IMerkleLink> links)
+        public DagPbNode RemoveLinks(IEnumerable<IMerkleLink> links)
         {
             var newLinks = new List<IMerkleLink>(this.links);
             newLinks.RemoveAll(l => links.Contains(l));
-            return new DagNode(DataBytes, newLinks, hashAlgorithm);
+            return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         private void Read(Stream stream)
@@ -255,7 +255,7 @@ namespace PeerData.Codecs.DagPb
                     case 2:
                         using (var ms = new MemoryStream(stream!.ReadPrimitiveBytes(stream!.ReadLength())!))
                         {
-                            newLinks.Add(new DagLink(ms));
+                            newLinks.Add(new DagPbLink(ms));
                         }
                         break;
                     default:
@@ -296,7 +296,7 @@ namespace PeerData.Codecs.DagPb
         {
             ArgumentNullException.ThrowIfNull(stream);
 
-            foreach (DagLink link in Links.Cast<DagLink>())
+            foreach (DagPbLink link in Links.Cast<DagPbLink>())
             {
                 using (var linkStream = new MemoryStream())
                 {
@@ -317,7 +317,7 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <inheritdoc />
-        public IMerkleLink ToLink(string name = "") => new DagLink(name, Identifier, Size);
+        public IMerkleLink ToLink(string name = "") => new DagPbLink(name, Identifier, Size);
 
         /// <summary>
         /// Returns the IPFS binary representation as a byte array.

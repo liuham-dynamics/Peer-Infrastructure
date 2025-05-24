@@ -6,7 +6,7 @@ namespace PeerData.Codecs.DagPb
     /// <summary>
     ///   A link to another node in the IPFS Merkle DAG.
     /// </summary>
-    public class DagLink : IMerkleLink
+    public class DagPbLink : IMerkleLink
     {
         /// <inheritdoc />
         public Cid Identifier { get; private set; }
@@ -19,12 +19,12 @@ namespace PeerData.Codecs.DagPb
 
 
         /// <summary>
-        /// Create a new instance of <see cref="DagLink"/> class.
+        /// Create a new instance of <see cref="DagPbLink"/> class.
         /// </summary>
         /// <param name="name">The name associated with the linked node.</param>
         /// <param name="id">The <see cref="Cid"/> of the linked node.</param>
         /// <param name="size">The serialized size (in bytes) of the linked node.</param>
-        public DagLink(string name, Cid id, long size)
+        public DagPbLink(string name, Cid id, long size)
         {
             Name = name;
             Identifier = id;
@@ -32,22 +32,22 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagLink"/> class from the specified <see cref="IMerkleLink"/>.
+        /// Creates a new instance of the <see cref="DagPbLink"/> class from the specified <see cref="IMerkleLink"/>.
         /// </summary>
         /// <param name="link">
         /// Some type of a Merkle link.
         /// </param>
-        public DagLink(IMerkleLink link) : this(link.Name, link.Identifier, link.Size) { }
+        public DagPbLink(IMerkleLink link) : this(link.Name, link.Identifier, link.Size) { }
 
         /// <summary>
-        ///   Creates a new instance of the <see cref="DagLink"/> class from the
+        ///   Creates a new instance of the <see cref="DagPbLink"/> class from the
         ///   specified <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
         ///   A <see cref="Stream"/> containing the binary representation of the
-        ///   <b>DagLink</b>.
+        ///   <b>DagJsonLink</b>.
         /// </param>
-        public DagLink(Stream stream)
+        public DagPbLink(Stream stream)
         {
             Identifier = new Cid();
             Name = string.Empty;
@@ -56,14 +56,14 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        ///   Creates a new instance of the <see cref="DagLink"/> class from the
+        ///   Creates a new instance of the <see cref="DagPbLink"/> class from the
         ///   specified <see cref="CodedInputStream"/>.
         /// </summary>
         /// <param name="stream">
         ///   A <see cref="CodedInputStream"/> containing the binary representation of the
-        ///   <b>DagLink</b>.
+        ///   <b>DagJsonLink</b>.
         /// </param>
-        public DagLink(CodedInputStream stream)
+        public DagPbLink(CodedInputStream stream)
         {
             Identifier = new Cid();
             Name = string.Empty;

@@ -10,4 +10,8 @@
     <ProjectReference Include="..\PeerStack\PeerStack.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Codecs\DagCbor\" />
+  </ItemGroup>
+
 </Project>
