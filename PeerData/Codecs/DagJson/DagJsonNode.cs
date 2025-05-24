@@ -70,7 +70,6 @@ namespace PeerData.Codecs.DagPb
         /// <inheritdoc />
         public IEnumerable<IMerkleLink> Links => links;
 
-
         private void ComputeHash()
         {
             using (var ms = new MemoryStream())

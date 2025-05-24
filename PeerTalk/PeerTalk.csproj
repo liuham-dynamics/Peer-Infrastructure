@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\PeerStack\PeerStack.csproj" />
+    <ProjectReference Include="..\PeerTalk.Core\PeerTalk.Core.csproj" />
+  </ItemGroup>
+
 </Project>
