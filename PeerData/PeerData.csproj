@@ -7,7 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\PeerData\PeerData.csproj" />
     <ProjectReference Include="..\PeerStack\PeerStack.csproj" />
   </ItemGroup>
 
