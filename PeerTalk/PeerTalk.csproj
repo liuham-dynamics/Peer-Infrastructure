@@ -11,4 +11,8 @@
     <ProjectReference Include="..\PeerTalk.Core\PeerTalk.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Dns\" />
+  </ItemGroup>
+
 </Project>

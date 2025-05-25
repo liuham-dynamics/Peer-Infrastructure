@@ -1,10 +1,4 @@
 ﻿using PeerTalk.Core;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PeerTalk.Kbucket
 {
@@ -14,86 +8,98 @@ namespace PeerTalk.Kbucket
     public class Bucket<T> where T : class, IContact
     {
         /// <summary>
-        ///   The contacts in the bucket.
+        /// The contacts in the bucket.
         /// </summary>
         public List<T> Contacts = [];
 
         /// <summary>
-        ///  Determines if the bucket can be split.
+        /// The left hand node.
         /// </summary>
-        public bool DontSplit;
+        public Bucket<T>? Left { get; set; }
 
         /// <summary>
-        ///   The left hand node.
+        /// The right hand node.
         /// </summary>
-        public Bucket<T> Left;
+        public Bucket<T>? Right { get; set; }
 
         /// <summary>
-        ///   The right hand node.
+        /// Determines if the bucket can be split.
         /// </summary>
-        public Bucket<T> Right;
+        public bool DontSplit { get; set; }
 
         /// <summary>
-        ///   Determines if the <see cref="Contacts"/> contains the item.
+        /// Determines if the <see cref="Contacts"/> contains the item.
         /// </summary>
         public bool Contains(T item)
         {
-            if (Contacts == null)
+            if (Contacts is null)
             {
                 return false;
             }
+
             return Contacts.Any(c => c.Identifier.SequenceEqual(item.Identifier));
         }
 
         /// <summary>
-        ///   Gets the first contact with the ID.
+        /// Gets the first contact with the ID.
         /// </summary>
         /// <param name="id"></param>
         /// <returns>
-        ///   The matching contact or <b>null</b>.
+        /// The matching contact or <b>null</b>.
         /// </returns>
         public T Get(byte[] id)
         {
-            return Contacts?.FirstOrDefault(c => c.Identifier.SequenceEqual(id));
+            return Contacts.FirstOrDefault(c => c.Identifier.SequenceEqual(id))!;
         }
 
+        /// <inheridoc/> 
         internal int IndexOf(byte[] id)
         {
-            if (Contacts == null)
-                return -1;
-            return Contacts.FindIndex(c => c.Identifier.SequenceEqual(id));
+            return Contacts is null ? -1 : Contacts.FindIndex(c => c.Identifier.SequenceEqual(id));
         }
 
+        /// <inheridoc/> 
         internal int DeepCount()
         {
             var n = 0;
-            if (Contacts != null)
+            if (Contacts is not null)
+            {
                 n += Contacts.Count;
-            if (Left != null)
+            }
+
+            if (Left is not null)
+            {
                 n += Left.DeepCount();
-            if (Right != null)
+            }
+
+            if (Right is not null)
+            {
                 n += Right.DeepCount();
+            }
 
             return n;
         }
 
+        /// <inheridoc/> 
         internal IEnumerable<T> AllContacts()
         {
-            if (Contacts != null)
+            if (Contacts is not null)
             {
                 foreach (var contact in Contacts)
                 {
                     yield return contact;
                 }
             }
-            if (Left != null)
+
+            if (Left is not null)
             {
                 foreach (var contact in Left.AllContacts())
                 {
                     yield return contact;
                 }
             }
-            if (Right != null)
+
+            if (Right is not null)
             {
                 foreach (var contact in Right.AllContacts())
                 {

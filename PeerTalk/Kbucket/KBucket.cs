@@ -16,12 +16,12 @@ namespace PeerTalk.Kbucket
     ///   A contact type that implements <see cref="IContact"/> .
     /// </typeparam>
     /// <remarks>
-    ///   All public methods and properties are thead-safe.
+    ///   All public methods and properties are thread-safe.
     /// </remarks>
     public class KBucket<T> : ICollection<T> where T : class, IContact
     {
-        private readonly ReaderWriterLockSlim rwlock = new();
-        private byte[] localContactId;
+        private readonly ReaderWriterLockSlim _memberLock = new();
+        private byte[] localContactId = [20];
 
         /// <summary>
         ///   The number of contacts allowed in a bucket.
@@ -32,29 +32,31 @@ namespace PeerTalk.Kbucket
         public int ContactsPerBucket { get; set; } = 20;
 
         /// <summary>
-        ///   The number of contacts to ping when a bucket that should not be split
-        ///   becomes full.
+        /// The number of contacts to ping when a bucket that should not be split
+        /// becomes full. This is dependent on operating system (OS), 3 when on 
+        /// Android or iOS but, 6 when on Windows or Linux. 
         /// </summary>
         /// <value>
-        ///   Defaults to 3.
+        /// Defaults to 3 on Mobile based OSes and 6 on Laptop/Desktop OSes.
         /// </value>
         /// <seealso cref="Ping"/>
-        public int ContactsToPing { get; set; } = 3;
+        public int ContactsToPing { get; set; } = OperatingSystem.IsAndroid()
+                                                | OperatingSystem.IsIOS()
+                                                ? 3 : 6;
 
         /// <summary>
-        ///   The ID of the local contact/peer.
+        /// The ID of the local contact/peer.
         /// </summary>
         /// <value>
-        ///   Defaults to 20 random bytes.
+        /// Defaults to 20 random bytes.
         /// </value>
         public byte[] LocalContactId
         {
             get
             {
-                if (localContactId == null)
+                if (localContactId.Length == 0)
                 {
-                    localContactId = new byte[20];
-                    new Random().NextBytes(localContactId);
+                    Random.Shared.NextBytes(localContactId);
                 }
                 return localContactId;
             }
@@ -63,11 +65,17 @@ namespace PeerTalk.Kbucket
                 localContactId = value;
             }
         }
+         
+        /// <inheritdoc />
+        public int Count => Root.DeepCount();
 
+        /// <inheritdoc />
+        public bool IsReadOnly => false;
+         
         /// <summary>
-        ///   The root of the binary tree.
+        /// The root of the binary tree.
         /// </summary>
-        public Bucket<T>? Root { get; private set; }
+        public Bucket<T> Root { get; private set; } = new();
 
         /// <summary>
         ///   Raised when a bucket needs splitting but cannot be split.
@@ -75,28 +83,27 @@ namespace PeerTalk.Kbucket
         public event EventHandler<ReviewEventArgs<T>> Ping;
 
         /// <summary>
-        ///   Determines which contact is used when both have the same ID.
+        /// Determines which contact is used when both have the same ID.
         /// </summary>
         /// <value>
-        ///   Defaults to <see cref="DefaultAbiter(T, T)"/>.
+        /// Defaults to <see cref="DefaultAbiter(T, T)"/>.
         /// </value>
         /// <remarks>
-        ///   The arguments are the incumbent and the candidate.
+        /// The arguments are the incumbent and the candidate.
         /// </remarks>
         public Func<T, T, T> Arbiter { get; set; } = DefaultAbiter;
 
         /// <summary>
-        ///   Used to determine which contact should be use when both
-        ///   have the same ID.
+        /// Used to determine which contact should be use when both have the same ID.
         /// </summary>
         /// <param name="incumbent">
-        ///   The existing contact.
+        /// The existing contact.
         /// </param>
         /// <param name="candidate">
-        ///   The new contact.
+        /// The new contact.
         /// </param>
         /// <returns>
-        ///   Always returns the <paramref name="incumbent"/>.
+        /// Always returns the <paramref name="incumbent"/>.
         /// </returns>
         public static T DefaultAbiter(T incumbent, T candidate)
         {
@@ -104,17 +111,17 @@ namespace PeerTalk.Kbucket
         }
 
         /// <summary>
-        ///   Finds the XOR distance between the two contacts.
+        /// Finds the XOR distance between the two contacts.
         /// </summary>
         public BigInteger Distance(T a, T b)
         {
-            Validate(a);
-            Validate(b);
+            KBucket<T>.Validate(a);
+            KBucket<T>.Validate(b);
             return Distance(a.Identifier, b.Identifier);
         }
 
         /// <summary>
-        ///   Finds the XOR distance between the two contact IDs.
+        /// Finds the XOR distance between the two contact IDs.
         /// </summary>
         public BigInteger Distance(byte[] a, byte[] b)
         {
@@ -134,18 +141,18 @@ namespace PeerTalk.Kbucket
         }
 
         /// <summary>
-        ///   Gets the closest contacts to the provided contact.
+        /// Gets the closest contacts to the provided contact.
         /// </summary>
         /// <param name="contact"></param>
         /// <returns>
-        ///   An ordered sequence of contact, sorted by closeness.
+        /// An ordered sequence of contact, sorted by closeness.
         /// </returns>
         /// <remarks>
-        ///   "Closest" is the XOR metric of the contact.
+        /// "Closest" is the XOR metric of the contact.
         /// </remarks>
         public IEnumerable<T> Closest(T contact)
         {
-            Validate(contact);
+            KBucket<T>.Validate(contact);
             return Closest(contact.Identifier);
         }
 
@@ -170,25 +177,20 @@ namespace PeerTalk.Kbucket
         }
 
         /// <inheritdoc />
-        public int Count => Root.DeepCount();
-
-        /// <inheritdoc />
-        public bool IsReadOnly => false;
-
-        /// <inheritdoc />
         public void Add(T item)
         {
-            Validate(item);
+            KBucket<T>.Validate(item);
             bool q;
             ReviewEventArgs<T> e;
-            rwlock.EnterWriteLock();
+
+            _memberLock.EnterWriteLock();
             try
             {
                 q = _Add(item, out e);
             }
             finally
             {
-                rwlock.ExitWriteLock();
+                _memberLock.ExitWriteLock();
             }
 
             // Could not add.  Ping oldest contacts.
@@ -201,42 +203,42 @@ namespace PeerTalk.Kbucket
         /// <inheritdoc />
         public void Clear()
         {
-            Root = new Bucket<T>();
+            Root = new();
         }
 
         /// <inheritdoc />
         public bool Contains(T item)
         {
-            Validate(item);
+            KBucket<T>.Validate(item);
 
-            rwlock.EnterReadLock();
+            _memberLock.EnterReadLock();
             try
             {
                 return _Get(item.Identifier) != null;
             }
             finally
             {
-                rwlock.ExitReadLock();
+                _memberLock.ExitReadLock();
             }
         }
 
         /// <summary>
-        ///   Gets the contact associated with the specified ID.
+        /// Gets the contact associated with the specified ID.
         /// </summary>
         /// <param name="id">
-        ///   The ID of an <see cref="IContact"/>.
+        /// The ID of an <see cref="IContact"/>.
         /// </param>
         /// <param name="contact">
-        ///   When this method returns, contains the <see cref="IContact"/> associated
-        ///   with the <paramref name="id"/>, if the key is found; otherwise, <b>null</b>.
-        ///   This parameter is passed uninitialized.
+        /// When this method returns, contains the <see cref="IContact"/> associated
+        /// with the <paramref name="id"/>, if the key is found; otherwise, <b>null</b>.
+        /// This parameter is passed uninitialized.
         /// </param>
         /// <returns>
         ///  <b>true</b> if the <paramref name="id"/> is found; otherwise <b>false</b>.
         /// </returns>
         public bool TryGet(byte[] id, out T contact)
         {
-            rwlock.EnterReadLock();
+            _memberLock.EnterReadLock();
             try
             {
                 contact = _Get(id);
@@ -244,7 +246,7 @@ namespace PeerTalk.Kbucket
             }
             finally
             {
-                rwlock.ExitReadLock();
+                _memberLock.ExitReadLock();
             }
         }
 
@@ -260,7 +262,7 @@ namespace PeerTalk.Kbucket
         /// <inheritdoc />
         public IEnumerator<T> GetEnumerator()
         {
-            rwlock.EnterReadLock();
+            _memberLock.EnterReadLock();
             try
             {
                 foreach (var contact in Root.AllContacts())
@@ -270,23 +272,23 @@ namespace PeerTalk.Kbucket
             }
             finally
             {
-                rwlock.ExitReadLock();
+                _memberLock.ExitReadLock();
             }
         }
 
         /// <inheritdoc />
         public bool Remove(T item)
         {
-            Validate(item);
+            KBucket<T>.Validate(item);
 
-            rwlock.EnterWriteLock();
+            _memberLock.EnterWriteLock();
             try
             {
                 return _Remove(item.Identifier);
             }
             finally
             {
-                rwlock.ExitWriteLock();
+                _memberLock.ExitWriteLock();
             }
         }
 
@@ -297,33 +299,59 @@ namespace PeerTalk.Kbucket
         }
 
         /// <summary>
-        ///   Check that contact is correct.
+        /// Check that contact is correct.
         /// </summary>
         /// <param name="contact">
-        ///   The <see cref="IContact"/> to validate.
+        /// The <see cref="IContact"/> to validate.
         /// </param>
         /// <exception cref="ArgumentNullException">
-        ///   When <paramref name="contact"/> is null or its <see cref="IContact.Id"/>
-        ///   is null or empty.
+        /// When <paramref name="contact"/> is null or its <see cref="IContact.Id"/> is null or empty.
         /// </exception>
-        private void Validate(T contact)
+        private static void Validate(T contact)
         {
-            if (contact == null)
-                throw new ArgumentNullException(nameof(contact));
+            ArgumentNullException.ThrowIfNull(contact);
             if (contact.Identifier == null || contact.Identifier.Length == 0)
+            {
                 throw new ArgumentNullException("contact.Id");
+            }
         }
 
         /// <summary>
-        ///   Add the contact.
+        ///   Get a contact by its exact ID.
+        /// </summary>
+        /// <param name="id">
+        ///   The ID of a <see cref="IContact"/>.
+        /// </param>
+        /// <returns>
+        ///   <b>null</b> or the found contact.
+        /// </returns>
+        private T _Get(byte[] id)
+        {
+            /*
+             * If this is a leaf, loop through the bucket contents and return the correct
+             * contact if we have it or null if not. If this is an inner node, determine
+             * which branch of the tree to traverse and repeat.
+             */
+            var bitIndex = 0;
+            var node = Root;
+            while (node.Contacts == null)
+            {
+                node = _DetermineNode(node, id, bitIndex++);
+            }
+
+            return node.Get(id);
+        }
+
+        /// <summary>
+        /// Add the contact.
         /// </summary>
         /// <param name="contact"></param>
         /// <param name="ping"></param>
         /// <returns>
-        ///   <b>true</b> if the <paramref name="contact"/> was added; otherwise,
-        ///   <b>false</b> and a <see cref="Ping"/> event should be raised.
+        /// <b>true</b> if the <paramref name="contact"/> was added; otherwise,
+        /// <b>false</b> and a <see cref="Ping"/> event should be raised.
         /// </returns>
-        private bool _Add(T contact, out ReviewEventArgs<T> ping)
+        private bool _Add(T contact, out ReviewEventArgs<T>? ping)
         {
             ping = null;
 
@@ -359,9 +387,9 @@ namespace PeerTalk.Kbucket
                 // we need to ping the first this.numberOfNodesToPing
                 // in order to determine if they are alive
                 // only if one of the pinged nodes does not respond, can the new contact
-                // be added (this prevents DoS flodding with new invalid contacts)
+                // be added (this prevents DoS flooding with new invalid contacts)
 
-                ping = new ReviewEventArgs<T> 
+                ping = new ReviewEventArgs<T>
                 {
                     Oldest = node.Contacts.Take(ContactsToPing).ToArray(),
                     Newest = contact
@@ -374,48 +402,21 @@ namespace PeerTalk.Kbucket
         }
 
         /// <summary>
-        ///   Splits the node, redistributes contacts to the new nodes, and marks the
-        ///   node that was split as an inner node of the binary tree of nodes by
-        ///   setting this.root.contacts = null
-        /// </summary>
-        private void _Split(Bucket<T> node, int bitIndex)
-        {
-            node.Left = new Bucket<T>();
-            node.Right = new Bucket<T>();
-
-            // redistribute existing contacts amongst the two newly created nodes
-            foreach (var contact in node.Contacts)
-            {
-                _DetermineNode(node, contact.Identifier, bitIndex)
-                    .Contacts.Add(contact);
-            }
-
-            node.Contacts = null; // mark as inner tree node
-
-            // don't split the "far away" node
-            // we check where the local node would end up and mark the other one as
-            // "dontSplit" (i.e. "far away")
-            var detNode = _DetermineNode(node, LocalContactId, bitIndex);
-            var otherNode = node.Left == detNode ? node.Right : node.Left;
-            otherNode.DontSplit = true;
-        }
-
-        /// <summary>
-        ///   Updates the contact selected by the arbiter.
+        /// Updates the contact selected by the arbiter.
         /// </summary>
         /// <remarks>
         /// <para>
-        ///   If the selection is our old contact and the candidate is some new contact
-        ///   then the new contact is abandoned (not added).
+        /// If the selection is our old contact and the candidate is some new contact
+        /// then the new contact is abandoned (not added).
         /// </para>
         /// <para>
-        ///   If the selection is our old contact and the candidate is our old contact
-        ///   then we are refreshing the contact and it is marked as most recently
-        ///   contacted(by being moved to the right/end of the bucket array).
+        /// If the selection is our old contact and the candidate is our old contact
+        /// then we are refreshing the contact and it is marked as most recently
+        /// contacted(by being moved to the right/end of the bucket array).
         /// </para>
         /// <para>
-        ///   If the selection is our new contact, the old contact is removed and the new
-        ///   contact is marked as most recently contacted.
+        /// If the selection is our new contact, the old contact is removed and the new
+        /// contact is marked as most recently contacted.
         /// </para>
         /// </remarks>
         private void _Update(Bucket<T> node, int index, T contact)
@@ -434,6 +435,54 @@ namespace PeerTalk.Kbucket
             node.Contacts.Add(selection);
         }
 
+        //
+        private bool _Remove(byte[] id)
+        {
+            var bitIndex = 0;
+
+            var node = Root;
+            while (node.Contacts == null)
+            {
+                node = _DetermineNode(node, id, bitIndex++);
+            }
+
+            // index of uses contact id for matching
+            var index = node.IndexOf(id);
+            if (0 <= index)
+            {
+                node.Contacts.RemoveAt(index);
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Splits the node, redistributes contacts to the new nodes, and marks the
+        /// node that was split as an inner node of the binary tree of nodes by
+        /// setting this.root.contacts = null
+        /// </summary>
+        private void _Split(Bucket<T> node, int bitIndex)
+        {
+            node.Left = new Bucket<T>();
+            node.Right = new Bucket<T>();
+
+            // redistribute existing contacts amongst the two newly created nodes
+            foreach (var contact in node.Contacts)
+            {
+                _DetermineNode(node, contact.Identifier, bitIndex).Contacts.Add(contact);
+            }
+
+            node.Contacts = []; // mark as inner tree node
+
+            // don't split the "far away" node
+            // we check where the local node would end up and mark the other one as
+            // "dontSplit" (i.e. "far away")
+            var detNode = _DetermineNode(node, LocalContactId, bitIndex);
+            var otherNode = node.Left == detNode ? node.Right : node.Left;
+            otherNode.DontSplit = true;
+        }
+ 
         /// <summary>
         ///   Determines whether the id at the bitIndex is 0 or 1.
         /// </summary>
@@ -457,7 +506,7 @@ namespace PeerTalk.Kbucket
             var bitIndexWithinByte = bitIndex % 8;
             if ((id.Length <= bytesDescribedByBitIndex) && (bitIndexWithinByte != 0))
             {
-                return node.Left;
+                return node.Left!;
             }
 
             // byteUnderConsideration is an integer from 0 to 255 represented by 8 bits
@@ -470,57 +519,10 @@ namespace PeerTalk.Kbucket
             var byteUnderConsideration = id[bytesDescribedByBitIndex];
             if (0 != (byteUnderConsideration & (1 << (7 - bitIndexWithinByte))))
             {
-                return node.Right;
+                return node.Right!;
             }
 
-            return node.Left;
-        }
-
-        /// <summary>
-        ///   Get a contact by its exact ID.
-        /// </summary>
-        /// <param name="id">
-        ///   The ID of a <see cref="IContact"/>.
-        /// </param>
-        /// <returns>
-        ///   <b>null</b> or the found contact.
-        /// </returns>
-        private T _Get(byte[] id)
-        {
-            /*
-             * If this is a leaf, loop through the bucket contents and return the correct
-             * contact if we have it or null if not. If this is an inner node, determine
-             * which branch of the tree to traverse and repeat.
-             */
-            var bitIndex = 0;
-            var node = Root;
-            while (node.Contacts == null)
-            {
-                node = _DetermineNode(node, id, bitIndex++);
-            }
-
-            return node.Get(id);
-        }
-
-        private bool _Remove(byte[] id)
-        {
-            var bitIndex = 0;
-
-            var node = Root;
-            while (node.Contacts == null)
-            {
-                node = _DetermineNode(node, id, bitIndex++);
-            }
-
-            // index of uses contact id for matching
-            var index = node.IndexOf(id);
-            if (0 <= index)
-            {
-                node.Contacts.RemoveAt(index);
-                return true;
-            }
-
-            return false;
+            return node.Left!;
         }
     }
 }
