@@ -1,15 +1,28 @@
 ﻿using Google.Protobuf;
 using PeerStack;
 using PeerStack.Multiformat;
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 
 namespace PeerData.Codecs.DagPb
 {
     /// <summary>
-    /// A node in the IPLD Merkle DAG.
+    ///   Represents a node in the IPLD Merkle DAG using the dag-pb codec.
     /// </summary>
     /// <remarks>
-    /// A <b>DagNode</b> has opaque <see cref="DagPbNode.DataBytes"/> and a set of navigable <see cref="DagPbNode.Links"/>.
+    ///   <para>
+    ///   <b>DagPbNode</b> implements <see cref="IMerkleNode{IMerkleLink}"/> and models a node in a Merkle Directed Acyclic Graph (DAG) as used by IPFS and IPLD.
+    ///   Each node contains opaque data (<see cref="DataBytes"/>) and a set of navigable links (<see cref="Links"/>) to other nodes.
+    ///   </para>
+    ///   <para>
+    ///   The links are always sorted in ascending order by <see cref="IMerkleLink.Name"/> (treating <c>null</c> as an empty string) and are immutable.
+    ///   </para>
+    ///   <para>
+    ///   The node is immutable; all mutation methods return a new instance.
+    ///   </para>
+    ///   <para>
+    ///   The node supports serialization and deserialization to and from the Protobuf-based dag-pb binary format.
+    ///   </para>
     /// </remarks>
     [DataContract]
     public class DagPbNode : IMerkleNode<IMerkleLink>
@@ -17,9 +30,10 @@ namespace PeerData.Codecs.DagPb
         private Cid id = new();
         private long? size;
         private string hashAlgorithm = MultiHash.DefaultAlgorithmName;
+        private byte[]? _cachedBytes;
 
         [DataMember]
-        private readonly HashSet<IMerkleLink> links = [];
+        private readonly ImmutableArray<IMerkleLink> links;
 
         /// <inheritdoc />
         [DataMember]
@@ -44,7 +58,7 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// The serialized size in bytes of the node.
+        ///   Gets the serialized size in bytes of the node.
         /// </summary>
         [DataMember]
         public long Size
@@ -58,175 +72,150 @@ namespace PeerData.Codecs.DagPb
                 return size!.Value;
             }
         }
-         
-        /// <inheritdoc />
-        [DataMember]
-        public byte[] DataBytes { get; private set; }
 
         /// <inheritdoc />
-        public Stream DataStream => new MemoryStream(DataBytes, false);
+        [DataMember]
+        public ReadOnlyMemory<byte> DataBytes { get; private set; }
+
+        /// <inheritdoc />
+        public Stream DataStream => new MemoryStream(DataBytes.ToArray(), false);
 
         /// <inheritdoc />
         public IEnumerable<IMerkleLink> Links => links;
 
-
+        /// <summary>
+        ///   Computes and caches the content identifier (CID) and size for this node using the specified hash algorithm.
+        /// </summary>
         private void ComputeHash()
         {
-            using (var ms = new MemoryStream())
-            {
-                Write(ms);
-                size = ms.Position;
-                ms.Position = 0;
-                id = MultiHash.ComputeHash(ms, hashAlgorithm);
-            }
-        }
-
-        private void ComputeSize()
-        {
-            using (var ms = new MemoryStream())
-            {
-                Write(ms);
-                size = ms.Position;
-            }
+            var bytes = ToArray();
+            using var ms = new MemoryStream(bytes, false);
+            size = ms.Length;
+            ms.Position = 0;
+            id = MultiHash.ComputeHash(ms, hashAlgorithm);
         }
 
         /// <summary>
-        /// Create a new instance of a <see cref="DagJsonNode"/> with the 
-        /// specified <see cref="DagJsonNode.DataBytes"/> and <see cref="DagJsonNode.Links"/>
+        ///   Computes and caches the serialized size of this node.
+        /// </summary>
+        private void ComputeSize()
+        {
+            var bytes = ToArray();
+            size = bytes.Length;
+        }
+
+        /// <summary>
+        ///   Initializes a new instance of the <see cref="DagPbNode"/> class with the specified data and links.
         /// </summary>
         /// <param name="data">
-        ///   The opaque data, can be <b>null</b>.
+        ///   The opaque data for the node. May be empty.
         /// </param>
         /// <param name="links">
-        ///   The links to other nodes.
+        ///   The links to other nodes. If provided, links are sorted by name.
         /// </param>
         /// <param name="hashAlgorithm">
-        ///   The name of the hashing algorithm to use; defaults to
-        ///   <see cref="MultiHash.DefaultAlgorithmName"/>.
+        ///   The name of the hashing algorithm to use for the CID. Defaults to <see cref="MultiHash.DefaultAlgorithmName"/>.
         /// </param>
-        public DagPbNode(byte[]? data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
+        public DagPbNode(ReadOnlyMemory<byte> data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
         {
-            DataBytes = data ?? [];
+            DataBytes = data;
             if (links is not null)
             {
-                var sortedLinks = links.OrderBy(link => link.Name ?? "");
-                foreach (var link in sortedLinks)
-                {
-                    this.links.Add(link);
-                }
+                this.links = [.. links.OrderBy(link => link.Name ?? string.Empty)];
+            }
+            else
+            {
+                this.links = [];
             }
             this.hashAlgorithm = hashAlgorithm;
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagJsonNode"/> class from the
-        /// specified <see cref="Stream"/>.
+        ///   Initializes a new instance of the <see cref="DagPbNode"/> class from a binary <see cref="Stream"/>.
         /// </summary>
         /// <param name="stream">
-        /// A <see cref="Stream"/> containing the binary representation of the <b>DagNode</b>.
+        ///   A <see cref="Stream"/> containing the Protobuf-encoded binary representation of the node.
         /// </param>
         public DagPbNode(Stream stream)
         {
-            DataBytes = [];
+            DataBytes = new ReadOnlyMemory<byte>();
             Read(stream);
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagJsonNode"/> class from the
-        /// specified <see cref="CodedInputStream"/>.
+        ///   Initializes a new instance of the <see cref="DagPbNode"/> class from a <see cref="CodedInputStream"/>.
         /// </summary>
-        /// <param name="stream">(
-        /// A <see cref="CodedInputStream"/> containing the binary representation of the <b>DagNode</b>.
+        /// <param name="stream">
+        ///   A <see cref="CodedInputStream"/> containing the Protobuf-encoded binary representation of the node.
         /// </param>
         public DagPbNode(CodedInputStream stream)
         {
-            DataBytes = [];
+            DataBytes = new ReadOnlyMemory<byte>();
             Read(stream);
         }
 
         /// <summary>
-        /// Adds a link.
+        ///   Returns a new <see cref="DagPbNode"/> with the specified link added.
         /// </summary>
-        /// <param name="link">
-        /// The link to add.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the existing and new links.
-        /// </returns>
+        /// <param name="link">The link to add.</param>
+        /// <returns>A new <see cref="DagPbNode"/> with the link added.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
+        ///   The node is immutable; this method does not modify the current instance.
         /// </remarks>
         public DagPbNode AddLink(IMerkleLink link)
         {
-            var newLinks = new List<IMerkleLink>(links) { link };
-            newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+            var newLinks = links.Add(link);
             return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
-        /// Adds a sequence of links.
+        ///   Returns a new <see cref="DagPbNode"/> with the specified links added.
         /// </summary>
-        /// <param name="links">
-        /// The sequence of links to add.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the existing and new links.
-        /// </returns>
+        /// <param name="newLinks">The sequence of links to add.</param>
+        /// <returns>A new <see cref="DagPbNode"/> with the links added.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
+        ///   The node is immutable; this method does not modify the current instance.
         /// </remarks>
-        public DagPbNode AddLinks(IEnumerable<IMerkleLink> links)
+        public DagPbNode AddLinks(IEnumerable<IMerkleLink> newLinks)
         {
-            var newLinks = new List<IMerkleLink>(this.links);
-            newLinks.AddRange(links);
-            newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
-            return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
+            var combined = links.AddRange(newLinks);
+            return new DagPbNode(DataBytes, combined, hashAlgorithm);
         }
 
         /// <summary>
-        /// Removes a link.
+        ///   Returns a new <see cref="DagPbNode"/> with the specified link removed.
         /// </summary>
-        /// <param name="link">
-        /// The <see cref="IMerkleLink"/> to remove.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the <paramref name="link"/> removed.
-        /// </returns>
+        /// <param name="link">The link to remove.</param>
+        /// <returns>A new <see cref="DagPbNode"/> with the link removed.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
-        /// <para>
-        /// No exception is raised if the <paramref name="link"/> does not exist.
-        /// </para>
+        ///   The node is immutable; this method does not modify the current instance.
+        ///   No exception is thrown if the link does not exist.
         /// </remarks>
         public DagPbNode RemoveLink(IMerkleLink link)
         {
-            var newLinks = new List<IMerkleLink>(links);
-            newLinks.RemoveAll(l => l.Equals(link));
+            var newLinks = links.Remove(link);
             return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
-        /// Remove a sequence of links.
+        ///   Returns a new <see cref="DagPbNode"/> with the specified links removed.
         /// </summary>
-        /// <param name="links">
-        /// The sequence of <see cref="IMerkleLink"/> to remove.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the <paramref name="links"/> removed.
-        /// </returns>
+        /// <param name="removeLinks">The sequence of links to remove.</param>
+        /// <returns>A new <see cref="DagPbNode"/> with the links removed.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
-        /// <para>
-        /// No exception is raised if any of the <paramref name="links"/> do not exist.
-        /// </para>
+        ///   The node is immutable; this method does not modify the current instance.
+        ///   No exception is thrown if any of the links do not exist.
         /// </remarks>
-        public DagPbNode RemoveLinks(IEnumerable<IMerkleLink> links)
+        public DagPbNode RemoveLinks(IEnumerable<IMerkleLink> removeLinks)
         {
-            var newLinks = new List<IMerkleLink>(this.links);
-            newLinks.RemoveAll(l => links.Contains(l));
+            var newLinks = links.RemoveRange(removeLinks);
             return new DagPbNode(DataBytes, newLinks, hashAlgorithm);
         }
 
+        /// <summary>
+        ///   Reads the binary representation of the node from the specified <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> to read from.</param>
         private void Read(Stream stream)
         {
             using (var cis = new CodedInputStream(stream, true))
@@ -235,9 +224,12 @@ namespace PeerData.Codecs.DagPb
             }
         }
 
+        /// <summary>
+        ///   Reads the binary representation of the node from the specified <see cref="CodedInputStream"/>.
+        /// </summary>
+        /// <param name="stream">The <see cref="CodedInputStream"/> to read from.</param>
         private void Read(CodedInputStream stream)
         {
-
             ArgumentNullException.ThrowIfNull(stream);
 
             var newLinks = new List<IMerkleLink>();
@@ -263,7 +255,7 @@ namespace PeerData.Codecs.DagPb
                 }
             }
 
-            DataBytes ??= [];
+            DataBytes = DataBytes.IsEmpty ? new ReadOnlyMemory<byte>() : DataBytes;
             links.Clear();
             foreach (var link in newLinks)
             {
@@ -271,13 +263,10 @@ namespace PeerData.Codecs.DagPb
             }
         }
 
-
         /// <summary>
-        /// Writes the binary representation of the node to the specified <see cref="Stream"/>.
+        ///   Writes the binary representation of the node to the specified <see cref="Stream"/>.
         /// </summary>
-        /// <param name="stream">
-        /// The <see cref="Stream"/> to write to.
-        /// </param>
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         public void Write(Stream stream)
         {
             using (var cos = new CodedOutputStream(stream, true))
@@ -289,30 +278,27 @@ namespace PeerData.Codecs.DagPb
         /// <summary>
         ///   Writes the binary representation of the node to the specified <see cref="CodedOutputStream"/>.
         /// </summary>
-        /// <param name="stream">
-        ///   The <see cref="CodedOutputStream"/> to write to.
-        /// </param>
+        /// <param name="stream">The <see cref="CodedOutputStream"/> to write to.</param>
         public void Write(CodedOutputStream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
 
+            using var linkStream = new MemoryStream();
             foreach (DagPbLink link in Links.Cast<DagPbLink>())
             {
-                using (var linkStream = new MemoryStream())
-                {
-                    link.Write(linkStream);
-                    var msg = linkStream.ToArray();
-                    stream.WriteTag(2, WireFormat.WireType.LengthDelimited);
-                    stream.WriteLength(msg.Length);
-                    stream.WritePrimitiveBytes(msg);
-                }
+                linkStream.SetLength(0);
+                link.Write(linkStream);
+                var msg = linkStream.ToArray();
+                stream.WriteTag(2, WireFormat.WireType.LengthDelimited);
+                stream.WriteLength(msg.Length);
+                stream.WritePrimitiveBytes(msg);
             }
 
-            if (DataBytes.Length > 0)
+            if (!DataBytes.IsEmpty)
             {
                 stream.WriteTag(1, WireFormat.WireType.LengthDelimited);
                 stream.WriteLength(DataBytes.Length);
-                stream.WritePrimitiveBytes(DataBytes);
+                stream.WritePrimitiveBytes(DataBytes.ToArray());
             }
         }
 
@@ -320,19 +306,21 @@ namespace PeerData.Codecs.DagPb
         public IMerkleLink ToLink(string name = "") => new DagPbLink(name, Identifier, Size);
 
         /// <summary>
-        /// Returns the IPFS binary representation as a byte array.
+        ///   Returns the IPFS dag-pb binary representation of the node as a byte array.
+        ///   The result is cached for performance.
         /// </summary>
-        /// <returns>
-        /// A byte array.
-        /// </returns>
+        /// <returns>A byte array containing the binary representation of the node.</returns>
         public byte[] ToArray()
         {
-            using (var ms = new MemoryStream())
+            if (_cachedBytes is not null)
             {
-                Write(ms);
-                return ms.ToArray();
+                return _cachedBytes;
             }
-        }
 
+            using var ms = new MemoryStream();
+            Write(ms);
+            _cachedBytes = ms.ToArray();
+            return _cachedBytes;
+        }
     }
 }

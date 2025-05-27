@@ -3,52 +3,57 @@
 namespace PeerData
 {
     /// <summary>
-    /// Some data that is stored in a format that do not care about what is being stored.
+    ///   Represents a generic block of data with a unique content identifier, used in content-addressed and distributed systems.
     /// </summary>
     /// <remarks>
-    /// A <b>DataBlock</b> has an <see cref="Identifier">unique ID</see>
-    /// and some data (<see cref="IDataBlock.DataBytes"/>
-    /// or <see cref="IDataBlock.DataStream"/>).
-    /// <para>
-    /// It is useful to talk about them as "blocks" in IPLD and other 
-    /// things that do not care about what is being stored.
-    /// </para>
+    ///   <para>
+    ///   An <b>IDataBlock</b> abstracts a unit of data that is identified by a unique <see cref="Identifier"/> (<see cref="Cid"/>)
+    ///   and provides access to its raw contents as either a byte array (<see cref="DataBytes"/>) or a stream (<see cref="DataStream"/>).
+    ///   </para>
+    ///   <para>
+    ///   This interface is designed for use in IPLD, IPFS, and similar systems where the structure and meaning of the data are not interpreted by the block itself.
+    ///   It is useful to refer to these as "blocks" in distributed, content-addressed storage, regardless of the actual data format.
+    ///   </para>
+    ///   <para>
+    ///   The <see cref="Identifier"/> is a self-describing, content-addressed identifier that ensures data integrity and deduplication.
+    ///   </para>
     /// </remarks>
     public interface IDataBlock
     {
-
         /// <summary>
-        /// The unique ID of the data.
+        /// Gets the unique content identifier (CID) for this data block.
         /// </summary>
         /// <value>
-        ///   A <see cref="Cid"/> of the content.
+        ///   A <see cref="Cid"/> representing the content address of the data.
         /// </value>
         Cid Identifier { get; }
 
         /// <summary>
-        /// The size (in bytes) of the data.
+        /// Gets the size (in bytes) of the data block.
         /// </summary>
-        /// <value>Number of bytes.</value>
+        /// <value>
+        ///   The number of bytes in the data block.
+        /// </value>
         long Size { get; }
 
         /// <summary>
-        ///   Contents as a byte array.
+        /// Gets the contents of the data block as a byte array.
         /// </summary>
         /// <remarks>
-        ///   It is never <b>null</b>.
+        ///   This property is never <c>null</c>.
         /// </remarks>
         /// <value>
         ///   The contents as a sequence of bytes.
         /// </value>
-        byte[] DataBytes { get; }
+        ReadOnlyMemory<byte> DataBytes { get; }
 
         /// <summary>
-        ///   Contents as a stream of bytes.
+        /// Gets the contents of the data block as a stream of bytes.
         /// </summary>
         /// <value>
-        ///   The contents as a stream of bytes.
+        ///   The contents as a readable <see cref="Stream"/>.
         /// </value>
         Stream DataStream { get; }
-
     }
 }
+

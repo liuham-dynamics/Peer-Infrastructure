@@ -11,158 +11,160 @@ using PeerStack;
 namespace PeerData
 {
     /// <summary>
-    /// Manages the IPLD (linked data) Directed Acrylic Graph.
+    ///   Provides an abstraction for managing and interacting with an IPLD (InterPlanetary Linked Data) Directed Acyclic Graph (DAG).
     /// </summary>
     /// <remarks>
-    ///   The DAG API is a replacement of the <see cref="IObjectService"/>, which only supported 'dag-pb'.
-    ///   This API supports other IPLD formats, such as cbor, ethereum-block, git, json...
+    ///   <para>
+    ///   The <b>IDagService</b> interface defines a high-level API for reading and writing IPLD nodes in a content-addressed, format-agnostic graph.
+    ///   It supports multiple IPLD codecs (such as dag-cbor, dag-pb, dag-json, ethereum-block, git, etc.), enabling flexible and interoperable data storage.
+    ///   </para>
+    ///   <para>
+    ///   This API supersedes the legacy service, which was limited to the 'dag-pb' format.
+    ///   </para>
+    ///   <para>
+    ///   All operations are asynchronous and support cancellation via <see cref="CancellationToken"/>.
+    ///   </para>
+    ///   <para>
+    ///   For more details, see the
+    ///   <see href="https://github.com/ipfs/interface-ipfs-core/blob/master/SPEC/DAG.md">IPFS DAG API specification</see>.
+    ///   </para>
     /// </remarks>
-    /// <seealso href="https://github.com/ipfs/interface-ipfs-core/blob/master/SPEC/DAG.md">Dag API spec</seealso>
     public interface IDagService
     {
         /// <summary>
-        ///   Get an IPLD node.
+        ///   Retrieves an IPLD node by its content identifier (CID) and returns its content as a JSON object.
         /// </summary>
         /// <param name="id">
-        ///   The <see cref="Cid"/> of the IPLD node.
+        ///   The <see cref="Cid"/> of the IPLD node to retrieve.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous get operation. The task's value
-        ///   contains the node's content as JSON.
+        ///   A task representing the asynchronous operation. The result contains the node's content as a <see cref="JsonObject"/>.
         /// </returns>
         Task<JsonObject> GetAsync(Cid id, CancellationToken cancel = default);
 
         /// <summary>
-        ///   Gets the content of an IPLD node.
+        ///   Retrieves the value at a specific path within the IPLD DAG, returning the result as a JSON element.
         /// </summary>
         /// <param name="path">
-        ///   A path, such as "cid", "/p2p/cid/" or "cid/a".
+        ///   A path string, such as "cid", "/p2p/cid/", or "cid/a", identifying the node or value to retrieve.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous get operation. The task's value
-        ///   contains the path's value.
+        ///   A task representing the asynchronous operation. The result contains the value at the specified path as a <see cref="JsonElement"/>.
         /// </returns>
         Task<JsonElement> GetAsync(string path, CancellationToken cancel = default);
 
         /// <summary>
-        ///   Get an IPLD node of the specific type.
+        ///   Retrieves an IPLD node by its CID and deserializes it to a strongly-typed object.
         /// </summary>
         /// <typeparam name="T">
-        ///   The object's type.
+        ///   The type to which the node's content will be deserialized.
         /// </typeparam>
         /// <param name="id">
-        ///   The <see cref="Cid"/> of the IPLD node.
+        ///   The <see cref="Cid"/> of the IPLD node to retrieve.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous get operation. The task's value
-        ///   is a new instance of the <typeparamref name="T"/> class.
+        ///   A task representing the asynchronous operation. The result is an instance of <typeparamref name="T"/>.
         /// </returns>
         Task<T> GetAsync<T>(Cid id, CancellationToken cancel = default);
 
         /// <summary>
-        ///  Put JSON data as an IPLD node.
+        ///   Stores a JSON object as an IPLD node in the DAG.
         /// </summary>
         /// <param name="data">
-        ///   The JSON data to send to the network.
+        ///   The JSON data to store.
         /// </param>
         /// <param name="contentType">
-        ///   The content type or format of the <paramref name="data"/>; such as "dag-pb" or "dag-cbor".
-        ///   See <see cref="MultiCodec"/> for more details.  Defaults to "dag-cbor".
+        ///   The IPLD codec or format for the data (e.g., "dag-pb", "dag-cbor"). Defaults to "dag-cbor".
+        ///   See <see cref="MultiCodec"/> for supported codecs.
         /// </param>
         /// <param name="multiHash">
-        ///   The <see cref="MultiHash"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiHash"/> algorithm name used to generate the <see cref="Cid"/>.
         /// </param>
         /// <param name="encoding">
-        ///   The <see cref="MultiBase"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiBase"/> encoding used for the <see cref="Cid"/>.
         /// </param>
         /// <param name="pin">
-        ///   If <b>true</b> the <paramref name="data"/> is pinned to local storage and will not be
-        ///   garbage collected.  The default is <b>true</b>.
+        ///   If <c>true</c>, the data is pinned to local storage and will not be garbage collected. Defaults to <c>true</c>.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous put operation. The task's value is
-        ///   the data's <see cref="Cid"/>.
+        ///   A task representing the asynchronous operation. The result is the <see cref="Cid"/> of the stored data.
         /// </returns>
-        Task<Cid> PutAsync(JsonObject data, string contentType = ContentTypes.Cbor, 
-                           string multiHash = MultiHash.DefaultAlgorithmName, 
-                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true, 
+        Task<Cid> PutAsync(JsonObject data, string contentType = ContentTypes.Cbor,
+                           string multiHash = MultiHash.DefaultAlgorithmName,
+                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true,
                            CancellationToken cancel = default);
 
         /// <summary>
-        ///  Put a stream of JSON as an IPLD node.
+        ///   Stores a stream of JSON data as an IPLD node in the DAG.
         /// </summary>
         /// <param name="data">
-        ///   The stream of JSON.
+        ///   The stream containing JSON data to store.
         /// </param>
         /// <param name="contentType">
-        ///   The content type or format of the <paramref name="data"/>; such as "dag-pb" or "dag-cbor".
-        ///   See <see cref="MultiCodec"/> for more details.  Defaults to "dag-cbor".
+        ///   The IPLD codec or format for the data (e.g., "dag-pb", "dag-cbor"). Defaults to "dag-cbor".
+        ///   See <see cref="MultiCodec"/> for supported codecs.
         /// </param>
         /// <param name="multiHash">
-        ///   The <see cref="MultiHash"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiHash"/> algorithm name used to generate the <see cref="Cid"/>.
         /// </param>
         /// <param name="encoding">
-        ///   The <see cref="MultiBase"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiBase"/> encoding used for the <see cref="Cid"/>.
         /// </param>
         /// <param name="pin">
-        ///   If <b>true</b> the <paramref name="data"/> is pinned to local storage and will not be
-        ///   garbage collected.  The default is <b>true</b>.
+        ///   If <c>true</c>, the data is pinned to local storage and will not be garbage collected. Defaults to <c>true</c>.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous put operation. The task's value is
-        ///   the data's <see cref="Cid"/>.
+        ///   A task representing the asynchronous operation. The result is the <see cref="Cid"/> of the stored data.
         /// </returns>
-        Task<Cid> PutAsync(Stream data, string contentType = ContentTypes.Cbor, 
-                           string multiHash = MultiHash.DefaultAlgorithmName, 
-                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true, 
+        Task<Cid> PutAsync(Stream data, string contentType = ContentTypes.Cbor,
+                           string multiHash = MultiHash.DefaultAlgorithmName,
+                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true,
                            CancellationToken cancel = default);
 
         /// <summary>
-        ///  Put an object as an IPLD node.
+        ///   Stores an object as an IPLD node in the DAG.
         /// </summary>
         /// <param name="data">
-        ///   The object to add.
+        ///   The object to serialize and store.
         /// </param>
         /// <param name="contentType">
-        ///   The content type or format of the <paramref name="data"/>; such as "dag-pb" or "dag-cbor".
-        ///   See <see cref="MultiCodec"/> for more details.  Defaults to "dag-cbor".
+        ///   The IPLD codec or format for the data (e.g., "dag-pb", "dag-cbor"). Defaults to "dag-cbor".
+        ///   See <see cref="MultiCodec"/> for supported codecs.
         /// </param>
         /// <param name="multiHash">
-        ///   The <see cref="MultiHash"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiHash"/> algorithm name used to generate the <see cref="Cid"/>.
         /// </param>
         /// <param name="encoding">
-        ///   The <see cref="MultiBase"/> algorithm name used to produce the <see cref="Cid"/>.
+        ///   The <see cref="MultiBase"/> encoding used for the <see cref="Cid"/>.
         /// </param>
         /// <param name="pin">
-        ///   If <b>true</b> the <paramref name="data"/> is pinned to local storage and will not be
-        ///   garbage collected.  The default is <b>true</b>.
+        ///   If <c>true</c>, the data is pinned to local storage and will not be garbage collected. Defaults to <c>true</c>.
         /// </param>
         /// <param name="cancel">
-        ///   Is used to stop the task.  When cancelled, the <see cref="TaskCanceledException"/> is raised.
+        ///   A <see cref="CancellationToken"/> to cancel the operation. If cancelled, a <see cref="TaskCanceledException"/> is thrown.
         /// </param>
         /// <returns>
-        ///   A task that represents the asynchronous put operation. The task's value is
-        ///   the data's <see cref="Cid"/>.
+        ///   A task representing the asynchronous operation. The result is the <see cref="Cid"/> of the stored data.
         /// </returns>
-        Task<Cid> PutAsync(object data, string contentType = ContentTypes.Cbor, 
-                           string multiHash = MultiHash.DefaultAlgorithmName, 
-                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true, 
+        Task<Cid> PutAsync(object data, string contentType = ContentTypes.Cbor,
+                           string multiHash = MultiHash.DefaultAlgorithmName,
+                           string encoding = MultiBase.DefaultAlgorithmName, bool pin = true,
                            CancellationToken cancel = default);
-
     }
 }
+

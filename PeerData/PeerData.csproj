@@ -14,4 +14,8 @@
     <Folder Include="Codecs\DagCbor\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.Formats.Cbor" Version="8.0.0" />
+  </ItemGroup>
+
 </Project>
