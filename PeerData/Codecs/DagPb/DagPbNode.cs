@@ -25,7 +25,7 @@ namespace PeerData.Codecs.DagPb
     ///   </para>
     /// </remarks>
     [DataContract]
-    public class DagPbNode : IMerkleNode<IMerkleLink>
+    public record class DagPbNode : IMerkleNode<IMerkleLink>
     {
         private Cid id = new();
         private long? size;

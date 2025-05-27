@@ -4,7 +4,7 @@ using PeerStack.Multiformat;
 namespace PeerData.Codecs.DagPb
 {
     /// <summary>
-    ///   Represents a link to another node in the IPFS Merkle DAG using the dag-pb codec.
+    ///   Represents an immutable link to another node in the IPFS Merkle DAG using the dag-pb codec.
     /// </summary>
     /// <remarks>
     ///   <para>
@@ -18,16 +18,19 @@ namespace PeerData.Codecs.DagPb
     ///   <para>
     ///   The <see cref="ToArray"/> method caches the binary representation for performance when the object is immutable.
     ///   </para>
+    ///   <para>
+    ///   This class is thread-safe and designed for use in distributed, content-addressed systems.
+    ///   </para>
     /// </remarks>
-    public class DagPbLink : IMerkleLink
+    public record class DagPbLink : IMerkleLink
     {
         private byte[]? _memberCachedBytes;
 
         /// <inheritdoc />
-        public Cid Identifier { get; private set; }
+        public Cid Identifier { get; private set; } = new();
 
         /// <inheritdoc />
-        public string Name { get; private set; }
+        public string Name { get; private set; } = string.Empty;
 
         /// <inheritdoc />
         public long Size { get; private set; }
@@ -59,8 +62,6 @@ namespace PeerData.Codecs.DagPb
         /// </param>
         public DagPbLink(Stream stream)
         {
-            Identifier = new Cid();
-            Name = string.Empty;
             Read(stream);
         }
 
@@ -164,5 +165,11 @@ namespace PeerData.Codecs.DagPb
             _memberCachedBytes = ms.ToArray();
             return _memberCachedBytes;
         }
+ 
+        /// <summary>
+        ///   Returns a hash code for the current <see cref="DagPbLink"/>.
+        /// </summary>
+        /// <returns>A hash code for the current link.</returns>
+        public override int GetHashCode() => HashCode.Combine(Identifier, Name, Size);
     }
 }

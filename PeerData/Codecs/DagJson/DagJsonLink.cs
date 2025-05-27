@@ -2,13 +2,30 @@
 using System.Text.Json.Serialization;
 using PeerStack.Multiformat;
 
-namespace PeerData.Codecs.DagPb
+namespace PeerData.Codecs.DagJson
 {
     /// <summary>
-    ///   A link to another node in the IPFS Merkle DAG.
+    ///   Represents an immutable link to another node in the IPFS Merkle DAG using the dag-json codec.
     /// </summary>
-    public class DagJsonLink : IMerkleLink
+    /// <remarks>
+    ///   <para>
+    ///   <b>DagJsonLink</b> implements <see cref="IMerkleLink"/> and provides a reference to another node in a Merkle Directed Acyclic Graph (DAG) as used by IPFS and IPLD.
+    ///   Each link contains a unique content identifier (<see cref="Identifier"/>), an optional name (<see cref="Name"/>), and the serialized size (<see cref="Size"/>) of the linked node.
+    ///   </para>
+    ///   <para>
+    ///   This class is designed for use with the dag-json codec and supports JSON serialization and deserialization via <see cref="System.Text.Json"/>.
+    ///   </para>
+    ///   <para>
+    ///   The class is immutable and thread-safe. All properties are set at construction and cannot be modified.
+    ///   </para>
+    ///   <para>
+    ///   The <see cref="ToArrayAsync"/> method caches the binary representation for performance if the object is immutable.
+    ///   </para>
+    /// </remarks>
+    public record class DagJsonLink : IMerkleLink
     {
+        private byte[]? _memberCachedBytes;
+
         /// <inheritdoc />
         [JsonInclude]
         public Cid Identifier { get; private set; }
@@ -21,9 +38,8 @@ namespace PeerData.Codecs.DagPb
         [JsonInclude]
         public long Size { get; private set; }
 
-
         /// <summary>
-        /// Create a new instance of <see cref="DagJsonLink"/> class.
+        ///   Initializes a new instance of the <see cref="DagJsonLink"/> class with the specified name, identifier, and size.
         /// </summary>
         /// <param name="name">The name associated with the linked node.</param>
         /// <param name="id">The <see cref="Cid"/> of the linked node.</param>
@@ -37,34 +53,49 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagJsonLink"/> class from the specified <see cref="IMerkleLink"/>.
+        ///   Initializes a new instance of the <see cref="DagJsonLink"/> class from an existing <see cref="IMerkleLink"/>.
         /// </summary>
-        /// <param name="link">
-        /// Some type of a Merkle link.
-        /// </param>
+        /// <param name="link">An existing Merkle link to copy values from.</param>
         public DagJsonLink(IMerkleLink link) : this(link.Name, link.Identifier, link.Size) { }
 
         /// <summary>
-        ///   Creates a new instance of the <see cref="DagJsonLink"/> class from the
-        ///   specified <see cref="Stream"/>.
+        ///   Initializes a new instance of the <see cref="DagJsonLink"/> class from a <see cref="Stream"/> containing its JSON representation.
         /// </summary>
         /// <param name="stream">
-        ///   A <see cref="Stream"/> containing the binary representation of the
-        ///   <b>DagJsonLink</b>.
+        ///   A <see cref="Stream"/> containing the JSON representation of the <b>DagJsonLink</b>.
         /// </param>
         public DagJsonLink(Stream stream)
         {
             Identifier = new Cid();
             Name = string.Empty;
-
             Read(stream);
         }
 
+        /// <summary>
+        ///   Creates a new instance of the <see cref="DagJsonLink"/> class from the specified <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">
+        ///   A <see cref="Stream"/> containing the JSON representation of the <b>DagJsonLink</b>.
+        /// </param>
+        /// <returns>
+        ///   A new instance of <see cref="DagJsonLink"/>.
+        /// </returns>
+        public static DagJsonLink FromStream(Stream stream)
+        {
+            ArgumentNullException.ThrowIfNull(stream);
+            return JsonSerializer.Deserialize<DagJsonLink>(stream)
+                ?? throw new NullReferenceException("Invalid JSON UTF-8 stream");
+        }
+
+        /// <summary>
+        ///   Reads the JSON representation of the link from the specified <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> to read from.</param>
         private void Read(Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
 
-            var jsonLink = JsonSerializer.Deserialize<DagJsonLink>(stream) 
+            var jsonLink = JsonSerializer.Deserialize<DagJsonLink>(stream)
                          ?? throw new NullReferenceException("Invalid JSON UTF-8 stream");
 
             Identifier = jsonLink.Identifier;
@@ -73,31 +104,48 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// Writes the binary representation of the node to the specified <see cref="Stream"/>.
+        ///   Writes the JSON representation of the link to the specified <see cref="Stream"/> asynchronously.
         /// </summary>
-        /// <param name="stream">
-        /// The <see cref="Stream"/> to write to.
-        /// </param>
-        public async void WriteAsync(Stream stream)
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        public async Task WriteAsync(Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
-
             await JsonSerializer.SerializeAsync(stream, this).ConfigureAwait(false);
         }
 
-
         /// <summary>
-        /// Returns the binary representation as a byte array.
+        ///   Writes the JSON representation of the link to the specified <see cref="Stream"/> asynchronously, with cancellation support.
         /// </summary>
-        /// <returns>
-        /// A byte array.
-        /// </returns>
-        public byte[] ToArrayAsync()
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+        public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
         {
-            using var ms = new MemoryStream();
-            WriteAsync(ms);
-            return ms.ToArray();
+            ArgumentNullException.ThrowIfNull(stream);
+            await JsonSerializer.SerializeAsync(stream, this, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>
+        ///   Returns the JSON binary representation of the link as a byte array.
+        ///   The result is cached for performance if the object is immutable.
+        /// </summary>
+        /// <returns>A byte array containing the JSON representation of the link.</returns>
+        public async Task<byte[]> ToArrayAsync()
+        {
+            if (_memberCachedBytes is not null)
+            {
+                return _memberCachedBytes;
+            }
+
+            using var ms = new MemoryStream();
+            await WriteAsync(ms).ConfigureAwait(false);
+            _memberCachedBytes = ms.ToArray();
+            return _memberCachedBytes;
+        }
+         
+        /// <summary>
+        ///   Returns a hash code for the current <see cref="DagJsonLink"/>.
+        /// </summary>
+        /// <returns>A hash code for the current link.</returns>
+        public override int GetHashCode() => HashCode.Combine(Identifier, Name, Size);
     }
 }

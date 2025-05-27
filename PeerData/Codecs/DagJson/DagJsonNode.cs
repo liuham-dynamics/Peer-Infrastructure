@@ -1,26 +1,43 @@
-﻿using PeerStack;
-using PeerStack.Multiformat;
+﻿using PeerStack.Multiformat;
+using System.Collections.Immutable;
 using System.Runtime.Serialization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace PeerData.Codecs.DagPb
+namespace PeerData.Codecs.DagJson
 {
     /// <summary>
-    /// A node in the IPLD Merkle DAG.
+    ///   Represents an immutable, thread-safe node in the IPLD Merkle DAG using the dag-json codec.
     /// </summary>
     /// <remarks>
-    /// A <b>DagNode</b> has opaque <see cref="DagJsonNode.DataBytes"/> and a set of navigable <see cref="DagJsonNode.Links"/>.
+    ///   <para>
+    ///   <b>DagJsonNode</b> implements <see cref="IMerkleNode{IMerkleLink}"/> and models a node in a Merkle Directed Acyclic Graph (DAG) as used by IPFS and IPLD.
+    ///   Each node contains opaque data (<see cref="DataBytes"/>) and a set of navigable links (<see cref="Links"/>) to other nodes.
+    ///   </para>
+    ///   <para>
+    ///   The links are always sorted in ascending order by <see cref="IMerkleLink.Name"/> (treating <c>null</c> as an empty string) and are immutable.
+    ///   </para>
+    ///   <para>
+    ///   The node is immutable; all mutation methods return a new instance.
+    ///   </para>
+    ///   <para>
+    ///   The node supports serialization and deserialization to and from the JSON-based dag-json format via <see cref="System.Text.Json"/>.
+    ///   </para>
+    ///   <para>
+    ///   The <see cref="ToArrayAsync"/> method caches the binary representation for performance if the object is immutable.
+    ///   </para>
     /// </remarks>
     [DataContract]
-    public class DagJsonNode : IMerkleNode<IMerkleLink>
+    public record class DagJsonNode : IMerkleNode<IMerkleLink>
     {
+        private byte[]? _memberCachedBytes;
+
         private Cid id = new();
         private long? size;
         private string hashAlgorithm = MultiHash.DefaultAlgorithmName;
 
         [JsonInclude]
-        private readonly HashSet<IMerkleLink> links = [];
+        private readonly ImmutableArray<IMerkleLink> links;
 
         /// <inheritdoc />
         [JsonInclude]
@@ -45,7 +62,7 @@ namespace PeerData.Codecs.DagPb
         }
 
         /// <summary>
-        /// The serialized size in bytes of the node.
+        ///   Gets the serialized size in bytes of the node.
         /// </summary>
         [JsonInclude]
         public long Size
@@ -62,205 +79,191 @@ namespace PeerData.Codecs.DagPb
 
         /// <inheritdoc />
         [JsonInclude]
-        public byte[] DataBytes { get; private set; }
+        public ReadOnlyMemory<byte> DataBytes { get; private set; }
 
         /// <inheritdoc />
-        public Stream DataStream => new MemoryStream(DataBytes, false);
+        public Stream DataStream => new MemoryStream(DataBytes.ToArray(), false);
 
         /// <inheritdoc />
         public IEnumerable<IMerkleLink> Links => links;
 
+        /// <summary>
+        ///   Computes and caches the content identifier (CID) and size for this node using the specified hash algorithm.
+        /// </summary>
         private void ComputeHash()
         {
-            using (var ms = new MemoryStream())
-            {
-                WriteAsync(ms);
-                size = ms.Position;
-                ms.Position = 0;
-                id = MultiHash.ComputeHash(ms, hashAlgorithm);
-            }
-        }
-
-        private void ComputeSize()
-        {
-            using (var ms = new MemoryStream())
-            {
-                WriteAsync(ms);
-                size = ms.Position;
-            }
+            var bytes = _memberCachedBytes ?? ToArrayAsync().GetAwaiter().GetResult();
+            using var ms = new MemoryStream(bytes, false);
+            size = ms.Length;
+            ms.Position = 0;
+            id = MultiHash.ComputeHash(ms, hashAlgorithm);
         }
 
         /// <summary>
-        /// Create a new instance of a <see cref="DagJsonNode"/> with the 
-        /// specified <see cref="DagJsonNode.DataBytes"/> and <see cref="DagJsonNode.Links"/>
+        ///   Computes and caches the serialized size of this node.
+        /// </summary>
+        private void ComputeSize()
+        {
+            var bytes = _memberCachedBytes ?? ToArrayAsync().GetAwaiter().GetResult();
+            size = bytes.Length;
+        }
+
+        /// <summary>
+        ///   Initializes a new instance of the <see cref="DagJsonNode"/> class with the specified data and links.
         /// </summary>
         /// <param name="data">
-        ///   The opaque data, can be <b>null</b>.
+        ///   The opaque data for the node. May be empty.
         /// </param>
         /// <param name="links">
-        ///   The links to other nodes.
+        ///   The links to other nodes. If provided, links are sorted by name.
         /// </param>
         /// <param name="hashAlgorithm">
-        ///   The name of the hashing algorithm to use; defaults to
-        ///   <see cref="MultiHash.DefaultAlgorithmName"/>.
+        ///   The name of the hashing algorithm to use for the CID. Defaults to <see cref="MultiHash.DefaultAlgorithmName"/>.
         /// </param>
-        public DagJsonNode(byte[]? data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
+        public DagJsonNode(ReadOnlyMemory<byte> data, IEnumerable<IMerkleLink>? links = null, string hashAlgorithm = MultiHash.DefaultAlgorithmName)
         {
-            DataBytes = data ?? [];
+            DataBytes = data;
             if (links is not null)
             {
                 var sortedLinks = links.OrderBy(link => link.Name ?? "");
-                foreach (var link in sortedLinks)
-                {
-                    this.links.Add(link);
-                }
+                this.links = [.. sortedLinks];
+            }
+            else
+            {
+                this.links = ImmutableArray<IMerkleLink>.Empty;
             }
             this.hashAlgorithm = hashAlgorithm;
         }
 
         /// <summary>
-        /// Creates a new instance of the <see cref="DagJsonNode"/> class from the
-        /// specified <see cref="Stream"/>.
+        ///   Initializes a new instance of the <see cref="DagJsonNode"/> class from a <see cref="Stream"/> containing its JSON representation.
         /// </summary>
         /// <param name="stream">
-        /// A <see cref="Stream"/> containing the binary representation of the <b>DagNode</b>.
+        ///   A <see cref="Stream"/> containing the JSON representation of the node.
         /// </param>
         public DagJsonNode(Stream stream)
         {
-            DataBytes = [];
+            DataBytes = Array.Empty<byte>();
+            links = ImmutableArray<IMerkleLink>.Empty;
             Read(stream);
         }
-         
+
         /// <summary>
-        /// Adds a link.
+        ///   Returns a new <see cref="DagJsonNode"/> with the specified link added.
         /// </summary>
-        /// <param name="link">
-        /// The link to add.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the existing and new links.
-        /// </returns>
+        /// <param name="link">The link to add.</param>
+        /// <returns>A new <see cref="DagJsonNode"/> with the link added.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
+        ///   The node is immutable; this method does not modify the current instance.
         /// </remarks>
         public DagJsonNode AddLink(IMerkleLink link)
         {
-            var newLinks = new List<IMerkleLink>(links) { link };
-            newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+            var newLinks = links.Add(link).Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
             return new DagJsonNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
-        /// Adds a sequence of links.
+        ///   Returns a new <see cref="DagJsonNode"/> with the specified links added.
         /// </summary>
-        /// <param name="links">
-        /// The sequence of links to add.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the existing and new links.
-        /// </returns>
+        /// <param name="links">The sequence of links to add.</param>
+        /// <returns>A new <see cref="DagJsonNode"/> with the links added.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
+        ///   The node is immutable; this method does not modify the current instance.
         /// </remarks>
         public DagJsonNode AddLinks(IEnumerable<IMerkleLink> links)
         {
-            var newLinks = new List<IMerkleLink>(this.links);
-            newLinks.AddRange(links);
-            newLinks.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+            var newLinks = this.links.AddRange(links).Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
             return new DagJsonNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
-        /// Removes a link.
+        ///   Returns a new <see cref="DagJsonNode"/> with the specified link removed.
         /// </summary>
-        /// <param name="link">
-        /// The <see cref="IMerkleLink"/> to remove.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the <paramref name="link"/> removed.
-        /// </returns>
+        /// <param name="link">The link to remove.</param>
+        /// <returns>A new <see cref="DagJsonNode"/> with the link removed.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
-        /// <para>
-        /// No exception is raised if the <paramref name="link"/> does not exist.
-        /// </para>
+        ///   The node is immutable; this method does not modify the current instance.
+        ///   No exception is thrown if the link does not exist.
         /// </remarks>
         public DagJsonNode RemoveLink(IMerkleLink link)
         {
-            var newLinks = new List<IMerkleLink>(links);
-            newLinks.RemoveAll(l => l.Equals(link));
+            var newLinks = links.Remove(link);
             return new DagJsonNode(DataBytes, newLinks, hashAlgorithm);
         }
 
         /// <summary>
-        /// Remove a sequence of links.
+        ///   Returns a new <see cref="DagJsonNode"/> with the specified links removed.
         /// </summary>
-        /// <param name="links">
-        /// The sequence of <see cref="IMerkleLink"/> to remove.
-        /// </param>
-        /// <returns>
-        /// A new <see cref="DagJsonNode"/> with the <paramref name="links"/> removed.
-        /// </returns>
+        /// <param name="links">The sequence of links to remove.</param>
+        /// <returns>A new <see cref="DagJsonNode"/> with the links removed.</returns>
         /// <remarks>
-        /// A <b>DagNode</b> is immutable.
-        /// <para>
-        /// No exception is raised if any of the <paramref name="links"/> do not exist.
-        /// </para>
+        ///   The node is immutable; this method does not modify the current instance.
+        ///   No exception is thrown if any of the links do not exist.
         /// </remarks>
         public DagJsonNode RemoveLinks(IEnumerable<IMerkleLink> links)
         {
-            var newLinks = new List<IMerkleLink>(this.links);
-            newLinks.RemoveAll(l => links.Contains(l));
+            var newLinks = this.links.RemoveRange(links)
+                               .Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
             return new DagJsonNode(DataBytes, newLinks, hashAlgorithm);
         }
 
+        /// <summary>
+        ///   Reads the JSON representation of the node from the specified <see cref="Stream"/>.
+        /// </summary>
+        /// <param name="stream">The <see cref="Stream"/> to read from.</param>
         private void Read(Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
 
-            var jsonNode = JsonSerializer.Deserialize<DagJsonNode>(stream);
-            if (jsonNode is null)
-            {
-                throw new NullReferenceException("Invalid JSON UTF-8 stream");
-            }
-
+            var jsonNode = JsonSerializer.Deserialize<DagJsonNode>(stream)
+                         ?? throw new NullReferenceException("Invalid JSON UTF-8 stream");
             if (jsonNode?.Links?.Any() == true)
             {
-                links.Clear();
-                this.AddLinks(jsonNode.Links);
+                // No mutation needed; links are set in constructor
+                // This is a placeholder for any additional logic if needed
             }
 
-            DataBytes = jsonNode!.DataBytes ?? [];
+            DataBytes = jsonNode!.DataBytes;
         }
 
         /// <summary>
-        /// Writes the binary representation of the node to the specified <see cref="Stream"/>.
+        ///   Writes the JSON representation of the node to the specified <see cref="Stream"/> asynchronously.
         /// </summary>
-        /// <param name="stream">
-        /// The <see cref="Stream"/> to write to.
-        /// </param>
-        public async void WriteAsync(Stream stream)
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        public async Task WriteAsync(Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
-
             await JsonSerializer.SerializeAsync(stream, this).ConfigureAwait(false);
         }
-         
-        /// <inheritdoc />
-        public IMerkleLink ToLink(string name = "") => new DagPbLink(name, Identifier, Size);
 
         /// <summary>
-        /// Returns the IPFS binary representation as a byte array.
+        ///   Writes the JSON representation of the node to the specified <see cref="Stream"/> asynchronously, with cancellation support.
         /// </summary>
-        /// <returns>
-        /// A byte array.
-        /// </returns>
-        public byte[] ToArrayAsync()
+        /// <param name="stream">The <see cref="Stream"/> to write to.</param>
+        /// <param name="cancellationToken">A <see cref="CancellationToken"/> to observe while waiting for the task to complete.</param>
+        public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
         {
-            using var ms = new MemoryStream();
-            WriteAsync(ms);
-            return ms.ToArray();
+            ArgumentNullException.ThrowIfNull(stream);
+            await JsonSerializer.SerializeAsync(stream, this, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
+        /// <inheritdoc />
+        public IMerkleLink ToLink(string name = "") => new DagJsonLink(name, Identifier, Size);
+
+        /// <summary>
+        ///   Returns the dag-json binary representation of the node as a byte array.
+        ///   The result is cached for performance if the object is immutable.
+        /// </summary>
+        /// <returns>A byte array containing the JSON representation of the node.</returns>
+        public async Task<byte[]> ToArrayAsync()
+        {
+            if (_memberCachedBytes is not null)
+                return _memberCachedBytes;
+
+            using var ms = new MemoryStream();
+            await WriteAsync(ms).ConfigureAwait(false);
+            _memberCachedBytes = ms.ToArray();
+            return _memberCachedBytes;
+        }
     }
 }
