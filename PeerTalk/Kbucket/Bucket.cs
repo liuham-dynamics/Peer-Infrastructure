@@ -3,33 +3,35 @@
 namespace PeerTalk.Kbucket
 {
     /// <summary>
-    ///   A binary tree node in the <see cref="KBucket{T}"/>.
+    ///   Represents a node in the binary tree structure of a <see cref="KBucket{T}"/>.
     /// </summary>
     public class Bucket<T> where T : class, IContact
     {
         /// <summary>
-        /// The contacts in the bucket.
+        /// Gets the list of contacts stored in this bucket.
         /// </summary>
-        public List<T> Contacts = [];
+        public readonly List<T> Contacts = [];
 
         /// <summary>
-        /// The left hand node.
+        /// Gets or sets the left child node of this bucket.
         /// </summary>
         public Bucket<T>? Left { get; set; }
 
         /// <summary>
-        /// The right hand node.
+        /// Gets or sets the right child node of this bucket.
         /// </summary>
         public Bucket<T>? Right { get; set; }
 
         /// <summary>
-        /// Determines if the bucket can be split.
+        /// Gets or sets a value indicating whether this bucket should not be split.
         /// </summary>
         public bool DontSplit { get; set; }
 
         /// <summary>
-        /// Determines if the <see cref="Contacts"/> contains the item.
+        /// Determines whether the specified contact exists in the <see cref="Contacts"/> list.
         /// </summary>
+        /// <param name="item">The contact to locate.</param>
+        /// <returns><c>true</c> if the contact is found; otherwise, <c>false</c>.</returns>
         public bool Contains(T item)
         {
             if (Contacts is null)
@@ -41,24 +43,22 @@ namespace PeerTalk.Kbucket
         }
 
         /// <summary>
-        /// Gets the first contact with the ID.
+        /// Retrieves the first contact with the specified identifier.
         /// </summary>
-        /// <param name="id"></param>
-        /// <returns>
-        /// The matching contact or <b>null</b>.
-        /// </returns>
+        /// <param name="id">The identifier to search for.</param>
+        /// <returns>The matching contact if found; otherwise, <c>null</c>.</returns>
         public T Get(byte[] id)
         {
             return Contacts.FirstOrDefault(c => c.Identifier.SequenceEqual(id))!;
         }
 
-        /// <inheridoc/> 
+        /// <inheritdoc/>
         internal int IndexOf(byte[] id)
         {
             return Contacts is null ? -1 : Contacts.FindIndex(c => c.Identifier.SequenceEqual(id));
         }
 
-        /// <inheridoc/> 
+        /// <inheritdoc/>
         internal int DeepCount()
         {
             var n = 0;
@@ -80,7 +80,7 @@ namespace PeerTalk.Kbucket
             return n;
         }
 
-        /// <inheridoc/> 
+        /// <inheritdoc/>
         internal IEnumerable<T> AllContacts()
         {
             if (Contacts is not null)

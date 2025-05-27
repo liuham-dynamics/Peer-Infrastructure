@@ -8,18 +8,18 @@ using System.Threading.Tasks;
 namespace PeerTalk.Kbucket
 {
     /// <summary>
-    ///   The contacts that should be checked.
+    /// Provides data for events that review contacts in a KBucket.
     /// </summary>
     /// <seealso cref="KBucket{T}.Ping"/>
     public class ReviewEventArgs<T> : EventArgs where T : IContact
     {
         /// <summary>
-        ///   The contacts that should be checked.
+        /// Gets or sets the collection of the oldest contacts that are candidates for review.
         /// </summary>
         public IEnumerable<T> Oldest { get; set; } = [];
 
         /// <summary>
-        ///   A new contact that wants to be added.
+        /// A new contact that wants to be added.
         /// </summary>
         public required T Newest { get; set; }
     }
