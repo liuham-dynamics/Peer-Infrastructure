@@ -141,7 +141,7 @@ namespace PeerStack.Cryptography
             }
             else if (ibStart + cbSize > array.Length)
             {
-                throw new ArgumentOutOfRangeException();
+                throw new ArgumentOutOfRangeException(nameof(array));
             }
         }
  

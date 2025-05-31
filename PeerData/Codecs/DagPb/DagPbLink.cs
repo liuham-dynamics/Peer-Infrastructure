@@ -22,6 +22,7 @@ namespace PeerData.Codecs.DagPb
     ///   This class is thread-safe and designed for use in distributed, content-addressed systems.
     ///   </para>
     /// </remarks>
+    
     public record class DagPbLink : IMerkleLink
     {
         private byte[]? _memberCachedBytes;

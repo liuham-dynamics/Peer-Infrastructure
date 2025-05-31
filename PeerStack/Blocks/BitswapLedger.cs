@@ -7,10 +7,9 @@ using System.Threading.Tasks;
 namespace PeerStack.Blocks
 {
     /// <summary>
-    ///   Statistics on the <see cref="IBitswapService">bitswap</see> blocks exchanged with another <see cref="Peer"/>.
+    ///   Statistics on the bitswap blocks exchanged with another <see cref="Peer"/>.
     /// </summary>
-    /// <seealso cref="IBitswapService.LedgerAsync"/>
-    public record class BitswapLedger
+     public record class BitswapLedger
     {
         /// <summary>
         /// The <see cref="Peer"/> that pertains to this ledger.

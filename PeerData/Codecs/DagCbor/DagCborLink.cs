@@ -1,43 +1,30 @@
-﻿using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Text.Json.Serialization;
-using PeerStack.Encoding;
+﻿using Org.BouncyCastle.Ocsp;
 using PeerStack.Multiformat;
+using PeterO.Cbor;
+using System;
+using System.Collections.Generic;
+using System.Data.Common;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace PeerData.Codecs.DagJson
+namespace PeerData.Codecs.DagCbor
 {
-    /// <summary>
-    ///   Represents an immutable link to another node in the IPFS Merkle DAG using the dag-json codec.
-    /// </summary>
-    /// <remarks>
-    ///   <para>
-    ///   <b>DagJsonLink</b> implements <see cref="IMerkleLink"/> and provides a reference to another node in a Merkle Directed Acyclic Graph (DAG) as used by IPFS and IPLD.
-    ///   Each link contains a unique content identifier (<see cref="Identifier"/>), an optional name (<see cref="Name"/>), and the serialized size (<see cref="Size"/>) of the linked node.
-    ///   </para>
-    ///   <para>
-    ///   This class is designed for use with the dag-json codec and supports JSON serialization and deserialization via <see cref="System.Text.Json"/>.
-    ///   </para>
-    ///   <para>
-    ///   The class is immutable and thread-safe. All properties are set at construction and cannot be modified.
-    ///   </para>
-    ///   <para>
-    ///   The <see cref="ToArrayAsync"/> method caches the binary representation for performance if the object is immutable.
-    ///   </para>
-    /// </remarks>
-    public record class DagJsonLink : IMerkleLink
+  
+       public record class DagCborLink : IMerkleLink
     {
         private byte[]? _memberCachedBytes;
 
         /// <inheritdoc />
-        [JsonInclude]
+        
         public Cid Identifier { get; private set; }
 
         /// <inheritdoc />
-        [JsonInclude]
+        
         public string Name { get; private set; }
 
         /// <inheritdoc />
-        [JsonInclude]
+        
         public long Size { get; private set; }
 
         /// <summary>
@@ -46,11 +33,11 @@ namespace PeerData.Codecs.DagJson
         /// <param name="name">The name associated with the linked node.</param>
         /// <param name="id">The <see cref="Cid"/> of the linked node.</param>
         /// <param name="size">The serialized size (in bytes) of the linked node.</param>
-        [JsonConstructor]
-        public DagJsonLink(string name, Cid id, long size)
+       
+        public DagCborLink(Cid id, string name, long size)
         {
+            Identifier = id;   
             Name = name;
-            Identifier = id;
             Size = size;
         }
 
@@ -58,7 +45,7 @@ namespace PeerData.Codecs.DagJson
         ///   Initializes a new instance of the <see cref="DagJsonLink"/> class from an existing <see cref="IMerkleLink"/>.
         /// </summary>
         /// <param name="link">An existing Merkle link to copy values from.</param>
-        public DagJsonLink(IMerkleLink link) : this(link.Name, link.Identifier, link.Size) { }
+        public DagCborLink(IMerkleLink link) : this(link.Name, link.Identifier, link.Size) { }
 
         /// <summary>
         ///   Initializes a new instance of the <see cref="DagJsonLink"/> class from a <see cref="Stream"/> containing its JSON representation.
@@ -66,29 +53,13 @@ namespace PeerData.Codecs.DagJson
         /// <param name="stream">
         ///   A <see cref="Stream"/> containing the JSON representation of the <b>DagJsonLink</b>.
         /// </param>
-        public DagJsonLink(Stream stream)
+        public DagCborLink(Stream stream)
         {
             Identifier = new Cid();
             Name = string.Empty;
             Read(stream);
         }
-
-        /// <summary>
-        ///   Creates a new instance of the <see cref="DagJsonLink"/> class from the specified <see cref="Stream"/>.
-        /// </summary>
-        /// <param name="stream">
-        ///   A <see cref="Stream"/> containing the JSON representation of the <b>DagJsonLink</b>.
-        /// </param>
-        /// <returns>
-        ///   A new instance of <see cref="DagJsonLink"/>.
-        /// </returns>
-        public static DagJsonLink FromStream(Stream stream)
-        {
-            ArgumentNullException.ThrowIfNull(stream);
-            return JsonSerializer.Deserialize<DagJsonLink>(stream)
-                ?? throw new NullReferenceException("Invalid JSON UTF-8 stream");
-        }
-
+         
         /// <summary>
         ///   Reads the JSON representation of the link from the specified <see cref="Stream"/>.
         /// </summary>
@@ -96,13 +67,22 @@ namespace PeerData.Codecs.DagJson
         private void Read(Stream stream)
         {
             ArgumentNullException.ThrowIfNull(stream);
+             
+            var cborObject = CBORObject.Read(stream);
+            if (cborObject.Type != CBORType.Array)
+            {
+                throw new CBORException("Invalid Dag-CBOR format.");
+            }
+             
+            if (!cborObject.HasOneTag(42))
+            {
+                throw new InvalidOperationException("Invalid Dag-CBOR object: expected a single tag for CID.");
+            }
 
-            var jsonLink = JsonSerializer.Deserialize<DagJsonLink>(stream)
-                         ?? throw new NullReferenceException("Invalid JSON UTF-8 stream");
-
-            Identifier = jsonLink.Identifier;
-            Name = jsonLink.Name;
-            Size = jsonLink.Size;
+            _memberCachedBytes = cborObject[0].GetByteString();
+            Identifier = Cid.Read(_memberCachedBytes);
+            Name = cborObject[1].AsString();
+            Size  = cborObject[2].AsInt64Value();
         }
 
         /// <summary>
@@ -111,7 +91,7 @@ namespace PeerData.Codecs.DagJson
         /// <param name="stream">The <see cref="Stream"/> to write to.</param>
         public async Task WriteAsync(Stream stream)
         {
-           await WriteAsync(stream, CancellationToken.None).ConfigureAwait(false);
+            await WriteAsync(stream, CancellationToken.None).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -122,7 +102,19 @@ namespace PeerData.Codecs.DagJson
         public async Task WriteAsync(Stream stream, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(stream);
-            await JsonSerializer.SerializeAsync(stream, this, cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            // The following creates a CBOR map and adds
+            // several kinds of objects to it
+            var cbor = CBORObject.NewArray()
+               .Add(Identifier.AsSpan().ToArray()).WithTag(42)
+               .Add(Name)
+               .Add(Size);
+
+            // The following converts the map to CBOR
+            byte[] bytes = cbor.EncodeToBytes();
+
+            // Write the CBOR bytes to the stream
+            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -142,7 +134,7 @@ namespace PeerData.Codecs.DagJson
             _memberCachedBytes = ms.ToArray();
             return _memberCachedBytes;
         }
-         
+
         /// <summary>
         ///   Returns a hash code for the current <see cref="DagJsonLink"/>.
         /// </summary>

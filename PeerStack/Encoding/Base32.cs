@@ -43,7 +43,7 @@ namespace PeerStack.Encoding
         ///   The encoder/decoder for base-32.
         /// </summary>
         public static SimpleBase.Base32 Base32Codec => SimpleBase.Base32.Rfc4648;
-
+          
 
         /// <summary>
         /// Converts an array of 8-bit unsigned integers to its equivalent string representation that is
