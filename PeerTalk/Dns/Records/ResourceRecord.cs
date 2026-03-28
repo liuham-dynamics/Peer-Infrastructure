@@ -15,7 +15,7 @@ namespace PeerTalk.Dns.Records
     /// </remarks>
     public class ResourceRecord : ADnsRecord, IPresentationSerialiser
     {
-        private static readonly TimeSpan timeSpan = TimeSpan.FromDays(1);
+        private static readonly TimeSpan _memberTimeSpan = TimeSpan.FromDays(1);
 
         /// <summary>
         ///   The default time interval that a resource record maybe cached.
@@ -23,7 +23,7 @@ namespace PeerTalk.Dns.Records
         /// <value>
         ///   Defaults to 1 day.
         /// </value>
-        public static TimeSpan DefaultTTL = timeSpan;
+        public static TimeSpan DefaultTTL = _memberTimeSpan;
 
         /// <summary>
         ///   The default time interval that a resource record containing
@@ -35,13 +35,13 @@ namespace PeerTalk.Dns.Records
         /// <remarks>
         ///   Host _memberNames are in A, AAAA, and HINFO records.
         /// </remarks>
-        public static TimeSpan DefaultHostTTL = timeSpan;
+        public static TimeSpan DefaultHostTTL = _memberTimeSpan;
 
         /// <summary>
         ///   An owner name, i.e., the name of the node to which this
         ///   resource record pertains.
         /// </summary>
-        public DomainName Name { get; set; }
+        public DomainName Name { get; set; } = DomainName.Root;
 
         /// <summary>
         ///   The canonical form of the owner name.
@@ -228,10 +228,10 @@ namespace PeerTalk.Dns.Records
         ///   are equal. Note that the <see cref="TTL"/> field is explicitly
         ///   excluded from the comparison.
         /// </remarks>
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var that = obj as ResourceRecord;
-            if (that == null) return false;
+            if (that is null) return false;
 
             if (this.Name != that.Name) return false;
             if (this.Class != that.Class) return false;
@@ -368,7 +368,7 @@ namespace PeerTalk.Dns.Records
         /// <inheritdoc />
         public ResourceRecord Read(PresentationReader reader)
         {
-            return reader.ReadResourceRecord();
+            return reader.ReadResourceRecord() ?? new ResourceRecord();
         }
 
         /// <summary>

@@ -11,7 +11,7 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined in <see href="https://tools.ietf.org/html/rfc2930">RFC 2930</see>.
     /// </remarks>
-    public class TKEYRecord : ResourceRecord
+    public sealed class TKEYRecord : ResourceRecord
     {
         static readonly byte[] NoData = new byte[0];
 
@@ -23,7 +23,8 @@ namespace PeerTalk.Dns.Records
             Type = DnsType.TKEY;
             Class = DnsClass.ANY;
             TTL = TimeSpan.Zero;
-            var now = DateTime.UtcNow;
+            Key = [];
+            Algorithm = DomainName.Root;
             OtherData = NoData;
         }
 

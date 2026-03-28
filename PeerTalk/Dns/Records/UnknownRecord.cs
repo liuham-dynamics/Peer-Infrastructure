@@ -8,12 +8,12 @@ namespace PeerTalk.Dns.Records
     /// <summary>
     ///   An unknown resource record.
     /// </summary>
-    public class UnknownRecord : ResourceRecord
+    public sealed class UnknownRecord : ResourceRecord
     {
         /// <summary>
         ///    Specfic data for the resource.
         /// </summary>
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; } = [];
 
         /// <inheritdoc />
         public override void ReadData(DnsWireReader reader, int length)

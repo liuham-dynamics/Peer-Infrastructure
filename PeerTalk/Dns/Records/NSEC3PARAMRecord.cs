@@ -12,7 +12,7 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined by <see href="https://tools.ietf.org/html/rfc5155#section-4">RFC 5155 - DNS Security (DNSSEC) Hashed Authenticated Denial of Existence</see>.
     /// </remarks>
-    public class NSEC3PARAMRecord : ResourceRecord
+    public sealed class NSEC3PARAMRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="NSEC3PARAMRecord"/> class.
@@ -20,6 +20,7 @@ namespace PeerTalk.Dns.Records
         public NSEC3PARAMRecord() : base()
         {
             Type = DnsType.NSEC3PARAM;
+            Salt = [];
         }
 
         /// <summary>
@@ -51,7 +52,7 @@ namespace PeerTalk.Dns.Records
         /// <inheritdoc />
         public override void ReadData(DnsWireReader reader, int length)
         {
-            var end = reader.Position + length;
+            _ = reader.Position + length;
 
             HashAlgorithm = (DigestType)reader.ReadByte();
             Flags = reader.ReadByte();

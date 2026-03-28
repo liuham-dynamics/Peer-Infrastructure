@@ -9,7 +9,7 @@ namespace PeerTalk.Dns.Records
     ///   Contains the the next owner name and the set of RR
     ///   types present at the NSEC RR's owner name [RFC3845].
     /// </summary>
-    public class NSECRecord : ResourceRecord
+    public sealed class NSECRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="NSECRecord"/> class.

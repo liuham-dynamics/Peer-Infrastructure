@@ -29,7 +29,7 @@ namespace PeerTalk.Dns.Records
     ///   </note>
     /// </remarks>
     /// <seealso href="https://tools.ietf.org/html/rfc6891"/>
-    public class OPTRecord : ResourceRecord
+    public sealed class OPTRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="OPTRecord"/> class.

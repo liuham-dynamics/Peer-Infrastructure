@@ -12,7 +12,7 @@ namespace PeerTalk.Dns.Records
     ///   TXT RRs are used to hold descriptive _memberTextReader.  The semantics of the _memberTextReader
     ///   depends on the domain where it is found.
     /// </remarks>
-    public class TXTRecord : ResourceRecord
+    public sealed class TXTRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="TXTRecord"/> class.

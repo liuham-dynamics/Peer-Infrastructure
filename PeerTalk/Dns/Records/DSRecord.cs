@@ -14,7 +14,7 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined in <see href="https://tools.ietf.org/html/rfc4034#section-5">RFC 4034 section 5</see>.
     /// </remarks>
-    public class DSRecord : ResourceRecord
+    public sealed class DSRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="DSRecord"/> class.
@@ -22,6 +22,7 @@ namespace PeerTalk.Dns.Records
         public DSRecord() : base()
         {
             Type = DnsType.DS;
+            Digest = [];
         }
 
         /// <summary>
@@ -41,8 +42,7 @@ namespace PeerTalk.Dns.Records
         /// <exception cref="ArgumentOutOfRangeException">
         ///   The <see cref="ResourceRecord.Name"/> of the <paramref name="key"/> is missing.
         /// </exception>
-        public DSRecord(DNSKEYRecord key, bool force = false)
-            : this()
+        public DSRecord(DNSKEYRecord key, bool force = false) : this()
         {
             // Check the key.
             if (!force)

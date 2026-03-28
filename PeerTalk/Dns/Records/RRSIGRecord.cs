@@ -11,7 +11,7 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined in <see href="https://tools.ietf.org/html/rfc4034#section-3">RFC 4034 section 3</see>.
     /// </remarks>
-    public class RRSIGRecord : ResourceRecord
+    public sealed class RRSIGRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="RRSIGRecord"/> class.
@@ -19,6 +19,8 @@ namespace PeerTalk.Dns.Records
         public RRSIGRecord() : base()
         {
             Type = DnsType.RRSIG;
+            SignerName = DomainName.Root;
+            Signature = [];
         }
 
         /// <summary>

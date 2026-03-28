@@ -13,7 +13,7 @@ namespace PeerTalk.Dns.Records
     ///  allowed in master files. NULLs are used as placeholders in some
     ///  experimental extensions of the DNS.
     /// </remarks>
-    public class NULLRecord : ResourceRecord
+    public sealed class NULLRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="NULLRecord"/> class.
@@ -21,6 +21,7 @@ namespace PeerTalk.Dns.Records
         public NULLRecord() : base()
         {
             Type = DnsType.NULL;
+            Data = [];
         }
 
         /// <summary>

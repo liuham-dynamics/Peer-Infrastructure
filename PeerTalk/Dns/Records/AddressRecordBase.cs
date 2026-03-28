@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO.Pipelines;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
@@ -9,14 +10,16 @@ namespace PeerTalk.Dns.Records
     /// <summary>
     ///   Base class for an Internet address.
     /// </summary>
-    public abstract class AddressRecord : ResourceRecord
+    public abstract class AddressRecordBase : ResourceRecord
     {
+        
         /// <summary>
-        ///   Creates a new instance of the <see cref="AddressRecord"/> class.
+        ///   Creates a new instance of the <see cref="AddressRecordBase"/> class.
         /// </summary>
-        protected AddressRecord()
+        protected AddressRecordBase()
         {
             TTL = DefaultHostTTL;
+            Address = IPAddress.None;
         }
 
         /// <summary>
@@ -26,7 +29,7 @@ namespace PeerTalk.Dns.Records
         ///   Either IPv4 or IPv6.
         /// </value>
         public IPAddress Address { get; set; }
-
+      
         /// <summary>
         ///   Creates an A or AAAA record based on the <see cref="AddressFamily"/>.
         /// </summary>
@@ -40,7 +43,7 @@ namespace PeerTalk.Dns.Records
         ///   An <see cref="ARecord"/> or <see cref="AAAARecord"/> tha describes
         ///   the <paramref name="name"/> and <paramref name="address"/>.
         /// </returns>
-        public static AddressRecord Create(DomainName name, IPAddress address)
+        public static AddressRecordBase Create(DomainName name, IPAddress address)
         {
             if (address.AddressFamily == AddressFamily.InterNetwork)
             {

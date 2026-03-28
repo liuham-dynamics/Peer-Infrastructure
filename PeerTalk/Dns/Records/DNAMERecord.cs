@@ -13,7 +13,7 @@ namespace PeerTalk.Dns.Records
     ///  alias for only the exact name. Like a CNAME record, the DNS lookup will continue by
     ///  retrying the lookup with the new name.
     /// </remarks>
-    public class DNAMERecord : ResourceRecord
+    public sealed class DNAMERecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="DNAMERecord"/> class.
@@ -21,6 +21,7 @@ namespace PeerTalk.Dns.Records
         public DNAMERecord() : base()
         {
             Type = DnsType.DNAME;
+            Target = DomainName.Root;
         }
 
         /// <summary>

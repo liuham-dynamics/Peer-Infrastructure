@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf.WellKnownTypes;
 using PeerStack.Utilities;
+using PeerStack.Utilities.Extensions;
 using PeerTalk.Dns.Records;
 using System;
 using System.Collections.Concurrent;
@@ -140,11 +141,11 @@ namespace PeerTalk.Dns.Resolving
         public Node IncludeRootHints()
         {
             var assembly = typeof(Catalog).GetTypeInfo().Assembly;
-            using (var hints = assembly.GetManifestResourceStream("Makaretu.Dns.Resolving.RootHints"))
+            using (var hints = assembly.GetManifestResourceStream("PeerTalk.Dns.Resolving.RootHints"))
             {
-                var reader = new PresentationReader(new StreamReader(hints));
+                var reader = new PresentationReader(new StreamReader(hints!));
                 ResourceRecord r;
-                while (null != (r = reader.ReadResourceRecord()))
+                while ((r = reader.ReadResourceRecord()!) is not null)
                 {
                     Add(r);
                 }
@@ -209,7 +210,7 @@ namespace PeerTalk.Dns.Resolving
         {
             var addressRecords = this.Values
                 .Where(node => node.Authoritative)
-                .SelectMany(node => node.Resources.OfType<AddressRecord>());
+                .SelectMany(node => node.Resources.OfType<AddressRecordBase>());
             foreach (var a in addressRecords)
             {
                 var ptr = new PTRRecord

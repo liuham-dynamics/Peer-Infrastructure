@@ -11,9 +11,9 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined in <see href="https://tools.ietf.org/html/rfc2845">RFC 2845</see>.
     /// </remarks>
-    public class TSIGRecord : ResourceRecord
+    public sealed class TSIGRecord : ResourceRecord
     {
-        static readonly byte[] NoData = new byte[0];
+        static readonly byte[] NoData = [];
 
         /// <summary>
         ///  The <see cref="Algorithm"/> name for HMACMD5.
@@ -58,10 +58,12 @@ namespace PeerTalk.Dns.Records
             Type = DnsType.TSIG;
             Class = DnsClass.ANY;
             TTL = TimeSpan.Zero;
-            var now = DateTime.UtcNow;
-            TimeSigned = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Kind);
+            MAC = NoData;
+            Algorithm = DomainName.Root;
             Fudge = TimeSpan.FromSeconds(300);
             OtherData = NoData;
+            var now = DateTime.UtcNow;
+            TimeSigned = new DateTime(now.Year, now.Month, now.Day, now.Hour, now.Minute, now.Second, now.Kind);
         }
 
         /// <summary>

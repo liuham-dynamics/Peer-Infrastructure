@@ -17,6 +17,7 @@ namespace PeerTalk.Dns.Records
         public DNSKEYRecord() : base()
         {
             Type = DnsType.DNSKEY;
+            PublicKey = [];
         }
 
         /// <summary>
@@ -29,8 +30,7 @@ namespace PeerTalk.Dns.Records
         /// <param name="algorithm">
         ///   The security algorithm to use.  Only RSA types are allowed.
         /// </param>
-        public DNSKEYRecord(RSA key, SecurityAlgorithm algorithm)
-            : this()
+        public DNSKEYRecord(RSA key, SecurityAlgorithm algorithm) : this()
         {
             switch (algorithm)
             {
@@ -49,62 +49,13 @@ namespace PeerTalk.Dns.Records
             using (var ms = new MemoryStream())
             {
                 var p = key.ExportParameters(includePrivateParameters: false);
-                ms.WriteByte((byte)p.Exponent.Length);
+                ms.WriteByte((byte)p.Exponent!.Length);
                 ms.Write(p.Exponent, 0, p.Exponent.Length);
-                ms.Write(p.Modulus, 0, p.Modulus.Length);
+                ms.Write(p.Modulus!, 0, p.Modulus!.Length);
                 PublicKey = ms.ToArray();
             }
         }
-
-#if (!NETSTANDARD14 && !NET45)
-        /// <summary>
-        ///   Creates a new instance of the <see cref="DNSKEYRecord"/> class
-        ///   from the specified ECDSA key.
-        /// </summary>
-        /// <param name="key">
-        ///   A public or private ECDSA key.
-        /// </param>
-        /// <exception cref="ArgumentException">
-        ///   <paramref name="key"/> is not named nistP256 nor nist384.
-        /// </exception>
-        /// <exception cref="CryptographicException">
-        ///   <paramref name="key"/> is not valid.
-        /// </exception>
-        /// <remarks>
-        ///   <note>
-        ///   ECDSA key support is <b>NOT available</b> for NETSTANDARD14 nor NET45.
-        ///   It is available for NETSTANDARD2, NET472 or greater.
-        ///   </note>
-        /// </remarks>
-        public DNSKEYRecord(ECDsa key)
-            : this()
-        {
-            var p = key.ExportParameters(includePrivateParameters: false);
-            p.Validate();
-
-            if (!p.Curve.IsNamed)
-                throw new ArgumentException("Only named ECDSA curves are allowed.");
-            Algorithm = SecurityAlgorithmRegistry.Algorithms
-                .Where(alg => alg.Value.OtherNames.Contains(p.Curve.Oid.FriendlyName))
-                .Select(alg => alg.Key)
-                .FirstOrDefault();
-            if (Algorithm == (SecurityAlgorithm)0)
-            {
-                throw new ArgumentException($"ECDSA curve '{p.Curve.Oid.FriendlyName} is not known'.");
-            }
-
-            // ECDSA public keys consist of a single value, called "Q" in FIPS 186-3.
-            // In DNSSEC keys, Q is a simple bit string that represents the
-            // uncompressed form of a curve point, "x | y".
-            using (var ms = new MemoryStream())
-            {
-                ms.Write(p.Q.X, 0, p.Q.X.Length);
-                ms.Write(p.Q.Y, 0, p.Q.Y.Length);
-                PublicKey = ms.ToArray();
-            }
-        }
-#endif
-
+ 
         /// <summary>
         ///  Identifies the intended usage of the key.
         /// </summary>

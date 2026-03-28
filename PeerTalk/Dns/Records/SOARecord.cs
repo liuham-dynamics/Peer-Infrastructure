@@ -20,7 +20,7 @@ namespace PeerTalk.Dns.Records
     ///   reason for this provison is to allow future dynamic update facilities to
     ///   change the SOA RR with known semantics.
     /// </remarks>
-    public class SOARecord : ResourceRecord
+    public sealed class SOARecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="SOARecord"/> class.
@@ -32,6 +32,8 @@ namespace PeerTalk.Dns.Records
         {
             Type = DnsType.SOA;
             TTL = TimeSpan.FromSeconds(0);
+            PrimaryName = DomainName.Root;
+            Mailbox = DomainName.Root;
         }
 
         /// <summary>

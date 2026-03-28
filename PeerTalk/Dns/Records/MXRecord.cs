@@ -13,7 +13,7 @@ namespace PeerTalk.Dns.Records
     ///   specified by EXCHANGE.The use of MX RRs is explained in detail in
     ///   [RFC-974].
     /// </remarks>
-    public class MXRecord : ResourceRecord
+    public sealed class MXRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="MXRecord"/> class.
@@ -21,6 +21,7 @@ namespace PeerTalk.Dns.Records
         public MXRecord() : base()
         {
             Type = DnsType.MX;
+            Exchange = DomainName.Root;
         }
 
         /// <summary>

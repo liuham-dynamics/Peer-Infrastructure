@@ -15,7 +15,7 @@ namespace PeerTalk.Dns.Records
     ///  similar to that performed by CNAME, which identifies aliases.See the
     ///  description of the IN-ADDR.ARPA domain for an example.
     /// </remarks>
-    public class PTRRecord : ResourceRecord
+    public sealed class PTRRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="PTRRecord"/> class.
@@ -23,6 +23,7 @@ namespace PeerTalk.Dns.Records
         public PTRRecord() : base()
         {
             Type = DnsType.PTR;
+            DomainName = DomainName.Root;
         }
 
         /// <summary>

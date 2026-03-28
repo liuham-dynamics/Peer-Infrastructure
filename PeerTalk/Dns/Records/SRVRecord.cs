@@ -8,7 +8,7 @@ namespace PeerTalk.Dns.Records
     /// <summary>
     ///   Allows administrators to use several servers for a single domain.
     /// </summary>
-    public class SRVRecord : ResourceRecord
+    public sealed class SRVRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="SRVRecord"/> class.
@@ -16,6 +16,7 @@ namespace PeerTalk.Dns.Records
         public SRVRecord() : base()
         {
             Type = DnsType.SRV;
+            Target = DomainName.Root;
         }
 
         /// <summary>

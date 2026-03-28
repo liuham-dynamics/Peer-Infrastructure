@@ -12,7 +12,7 @@ namespace PeerTalk.Dns.Records
     /// <remarks>
     ///   Defined by <see href="https://tools.ietf.org/html/rfc5155#section-3">RFC 5155 - DNS Security (DNSSEC) Hashed Authenticated Denial of Existence</see>.
     /// </remarks>
-    public class NSEC3Record : ResourceRecord
+    public sealed class NSEC3Record : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="NSEC3Record"/> class.
@@ -20,6 +20,8 @@ namespace PeerTalk.Dns.Records
         public NSEC3Record() : base()
         {
             Type = DnsType.NSEC3;
+            Salt = [];
+            NextHashedOwnerName = [];
         }
 
         /// <summary>

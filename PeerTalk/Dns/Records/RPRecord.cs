@@ -12,7 +12,7 @@ namespace PeerTalk.Dns.Records
     ///  The responsible person identification to any name in the DNS.
     /// </remarks>
     /// <seealso href="https://tools.ietf.org/html/rfc1183"/>
-    public class RPRecord : ResourceRecord
+    public sealed class RPRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="RPRecord"/> class.

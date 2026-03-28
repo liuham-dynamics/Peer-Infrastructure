@@ -16,7 +16,7 @@ namespace PeerTalk.Dns.Records
     ///   when talking between machines or operating systems of the same type.
     /// </para>
     /// </remarks>
-    public class HINFORecord : ResourceRecord
+    public sealed class HINFORecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="HINFORecord"/> class.
@@ -25,6 +25,8 @@ namespace PeerTalk.Dns.Records
         {
             Type = DnsType.HINFO;
             TTL = DefaultHostTTL;
+            Cpu = string.Empty;
+            OS = string.Empty;
         }
 
         /// <summary>

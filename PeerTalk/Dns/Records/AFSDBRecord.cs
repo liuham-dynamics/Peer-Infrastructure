@@ -12,7 +12,7 @@ namespace PeerTalk.Dns.Records
     ///   Maps a domain name to the name of an AFS cell database server.
     /// </remarks>
     /// <seealso href="https://tools.ietf.org/html/rfc1183"/>
-    public class AFSDBRecord : ResourceRecord
+    public sealed class AFSDBRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="AFSDBRecord"/> class.
@@ -20,6 +20,7 @@ namespace PeerTalk.Dns.Records
         public AFSDBRecord() : base()
         {
             Type = DnsType.AFSDB;
+            Target = DomainName.Root;
         }
 
         /// <summary>

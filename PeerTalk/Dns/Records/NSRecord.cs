@@ -23,7 +23,7 @@ namespace PeerTalk.Dns.Records
     ///   class information are normally queried using IN class protocols.
     /// </para>
     /// </remarks>
-    public class NSRecord : ResourceRecord
+    public sealed class NSRecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="NSRecord"/> class.
@@ -31,6 +31,7 @@ namespace PeerTalk.Dns.Records
         public NSRecord() : base()
         {
             Type = DnsType.NS;
+            Authority = DomainName.Root;
         }
 
         /// <summary>

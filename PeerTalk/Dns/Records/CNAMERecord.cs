@@ -13,7 +13,7 @@ namespace PeerTalk.Dns.Records
     ///  choose to restart the query at the canonical name in certain cases. See
     ///  the description of name server logic in [RFC - 1034] for details.
     /// </remarks>
-    public class CNAMERecord : ResourceRecord
+    public sealed class CNAMERecord : ResourceRecord
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="CNAMERecord"/> class.
@@ -21,6 +21,7 @@ namespace PeerTalk.Dns.Records
         public CNAMERecord() : base()
         {
             Type = DnsType.CNAME;
+            Target = DomainName.Root;
         }
 
         /// <summary>
