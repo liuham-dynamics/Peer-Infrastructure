@@ -23,7 +23,7 @@ namespace PeerTalk.Dns.Records
         ///  The priority of this target host.
         /// </summary>
         /// <remarks>
-        ///  A client MUST attempt to contact the target host with the
+        ///  A InternalClient MUST attempt to contact the target host with the
         ///  lowest-numbered priority it can
         ///  reach; target hosts with the same priority SHOULD be tried in an
         ///  order defined by the weight field.The range is 0-65535.

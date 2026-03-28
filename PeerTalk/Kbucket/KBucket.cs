@@ -144,21 +144,23 @@ namespace PeerTalk.Kbucket
         /// </summary>
         public IEnumerable<T> Closest(byte[] id)
         {
-            // Use a local list to avoid multiple enumerations
             List<T> allContacts;
             _memberLock.EnterReadLock();
             try
             {
-                allContacts = Root.AllContacts().ToList();
+                allContacts = [.. Root.AllContacts()];
             }
             finally
             {
                 _memberLock.ExitReadLock();
             }
-            return allContacts
-                .Select(c => (distance: Distance(c.Identifier, id), contact: c))
-                .OrderBy(x => x.distance)
-                .Select(x => x.contact);
+
+            // Distance is calculated twice: once in comparison, once in final selection
+            var contactsWithDistance = allContacts
+    .Select(c => new { Contact = c, Distance = Distance(c.Identifier, id) })
+    .OrderBy(x => x.Distance)
+    .Select(x => x.Contact);
+            return contactsWithDistance;
         }
 
         /// <summary>
@@ -311,7 +313,7 @@ namespace PeerTalk.Kbucket
         {
             var bitIndex = 0;
             var node = Root;
-            while (node.Contacts == null)
+            while (node.Contacts?.Count == 0)
             {
                 node = _DetermineNode(node, id, bitIndex++);
             }
@@ -433,6 +435,14 @@ namespace PeerTalk.Kbucket
                 return node.Right!;
             }
             return node.Left!;
+        }
+
+        /// <summary>
+        /// Dispose
+        /// </summary>
+        public void Dispose()
+        {
+            _memberLock?.Dispose();
         }
     }
 }

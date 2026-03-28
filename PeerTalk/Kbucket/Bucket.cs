@@ -7,10 +7,15 @@ namespace PeerTalk.Kbucket
     /// </summary>
     public class Bucket<T> where T : class, IContact
     {
+
+        private readonly List<T> _memberContacts = [];
+        private readonly Dictionary<string, T> _memberContactMap = []; // Cache by ID string
+
+
         /// <summary>
         /// Gets the list of contacts stored in this bucket.
         /// </summary>
-        public readonly List<T> Contacts = [];
+        public List<T> Contacts => _memberContacts;
 
         /// <summary>
         /// Gets or sets the left child node of this bucket.
@@ -32,15 +37,7 @@ namespace PeerTalk.Kbucket
         /// </summary>
         /// <param name="item">The contact to locate.</param>
         /// <returns><c>true</c> if the contact is found; otherwise, <c>false</c>.</returns>
-        public bool Contains(T item)
-        {
-            if (Contacts is null)
-            {
-                return false;
-            }
-
-            return Contacts.Any(c => c.Identifier.SequenceEqual(item.Identifier));
-        }
+        public bool Contains(T item) => _memberContactMap.ContainsKey(Convert.ToHexString(item.Identifier));
 
         /// <summary>
         /// Retrieves the first contact with the specified identifier.
@@ -49,43 +46,46 @@ namespace PeerTalk.Kbucket
         /// <returns>The matching contact if found; otherwise, <c>null</c>.</returns>
         public T Get(byte[] id)
         {
-            return Contacts.FirstOrDefault(c => c.Identifier.SequenceEqual(id))!;
+            var b = _memberContacts.FirstOrDefault(c => c.Identifier.SequenceEqual(id))!;
+            _ = _memberContactMap.TryAdd(Convert.ToHexString(b.Identifier), b);
+            return b;
         }
 
         /// <inheritdoc/>
         internal int IndexOf(byte[] id)
         {
-            return Contacts is null ? -1 : Contacts.FindIndex(c => c.Identifier.SequenceEqual(id));
+            return Contacts is null ? -1 : _memberContacts.FindIndex(c => c.Identifier.SequenceEqual(id));
         }
 
         /// <inheritdoc/>
         internal int DeepCount()
         {
-            var n = 0;
-            if (Contacts is not null)
-            {
-                n += Contacts.Count;
-            }
+            int count = 0;
+            var stack = new Stack<Bucket<T>>();
+            stack.Push(this);
 
-            if (Left is not null)
+            while (stack.Count > 0)
             {
-                n += Left.DeepCount();
+                var node = stack.Pop();
+                if (node._memberContacts is not null)
+                {
+                    count += node._memberContacts.Count;
+                }
+                else
+                {
+                    if (node.Left is not null) stack.Push(node.Left);
+                    if (node.Right is not null) stack.Push(node.Right);
+                }
             }
-
-            if (Right is not null)
-            {
-                n += Right.DeepCount();
-            }
-
-            return n;
+            return count;
         }
 
         /// <inheritdoc/>
         internal IEnumerable<T> AllContacts()
         {
-            if (Contacts is not null)
+            if (_memberContacts is not null)
             {
-                foreach (var contact in Contacts)
+                foreach (var contact in _memberContacts)
                 {
                     yield return contact;
                 }
