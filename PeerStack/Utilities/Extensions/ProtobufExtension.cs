@@ -1,7 +1,7 @@
 ﻿using Google.Protobuf;
 using System.Reflection;
 
-namespace PeerStack
+namespace PeerStack.Utilities.Extensions
 {
     public static class ProtobufExtension
     {

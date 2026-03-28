@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf;
 using PeerStack.Encoding;
+using PeerStack.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -123,7 +124,10 @@ namespace PeerStack.Multiformat
         {
             b58String = string.Empty;
             Digest = [];
-            
+            // Set Coder to a default value before Read() determines the actual coder
+            // from the provided argument. This ensures Coder is initialized before
+            // the constructor exits.
+            Coder = MultiHashCoder.Hashes.FirstOrDefault()!;
             using (var ms = new MemoryStream(buffer, false))
             {
                 Read(ms);
@@ -154,7 +158,10 @@ namespace PeerStack.Multiformat
         {
             b58String = string.Empty;
             Digest = [];
-
+            // Set Coder to a default value before Read() determines the actual coder
+            // from the provided argument. This ensures Coder is initialized before
+            // the constructor exits.
+            Coder = MultiHashCoder.Hashes.FirstOrDefault()!;
             Read(stream);
         }
 
@@ -182,7 +189,10 @@ namespace PeerStack.Multiformat
         {
             b58String = string.Empty;
             Digest = [];
-
+            // Set Coder to a default value before Read() determines the actual coder
+            // from the provided argument. This ensures Coder is initialized before
+            // the constructor exits.
+            Coder = MultiHashCoder.Hashes.FirstOrDefault()!;
             Read(stream);
         }
 
@@ -206,7 +216,10 @@ namespace PeerStack.Multiformat
         {
             b58String = string.Empty;
             Digest = [];
-
+            // Set Coder to a default value before Read() determines the actual coder
+            // from the provided argument. This ensures Coder is initialized before
+            // the constructor exits.
+            Coder = MultiHashCoder.Hashes.FirstOrDefault()!;
             using (var ms = new MemoryStream(s.FromBase58(), false))
             {
                 Read(ms);

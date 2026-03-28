@@ -15,12 +15,10 @@ namespace PeerStack.Encoding
     public static class HexString
     {
         //
-        private static readonly string[] LowerCaseHexStrings = Enumerable.Range(byte.MinValue, byte.MaxValue + 1)
-                                                                         .Select(v => v.ToString("x2")).ToArray();
+        private static readonly string[] LowerCaseHexStrings = [.. Enumerable.Range(byte.MinValue, byte.MaxValue + 1).Select(v => v.ToString("x2"))];
 
         //
-        private static readonly string[] UpperCaseHexStrings = Enumerable.Range(byte.MinValue, byte.MaxValue + 1)
-                                                                         .Select(v => v.ToString("X2")).ToArray();
+        private static readonly string[] UpperCaseHexStrings = [.. Enumerable.Range(byte.MinValue, byte.MaxValue + 1).Select(v => v.ToString("X2"))];
 
         //
         private static readonly Dictionary<string, byte> HexBytes = Enumerable.Range(byte.MinValue, byte.MaxValue + 1)

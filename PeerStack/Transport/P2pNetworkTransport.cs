@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf;
 using PeerStack.Multiformat;
+using PeerStack.Utilities.Extensions;
 
 namespace PeerStack.Transport
 {

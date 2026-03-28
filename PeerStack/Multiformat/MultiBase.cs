@@ -83,15 +83,16 @@ namespace PeerStack.Multiformat
         /// </exception>
         public static string Encode(byte[] bytes, string algorithmName = DefaultAlgorithmName)
         {
-            //
             ArgumentNullException.ThrowIfNull(bytes);
 
-            var codec = GetAlgorithm(algorithmName);
+            var codec = GetAlgorithm(algorithmName)
+                ?? throw new NotSupportedException($"Algorithm '{algorithmName}' is not supported.");
+
             var encoded = codec!.Encode(bytes);
+
             if (string.IsNullOrEmpty(encoded))
-            {
-                throw new InvalidOperationException(encoded);
-            }
+                throw new InvalidOperationException("Encoder returned null or empty value.");
+
             return codec.Code + encoded;
         }
 
@@ -115,19 +116,26 @@ namespace PeerStack.Multiformat
         {
             if (string.IsNullOrWhiteSpace(s))
             {
-                throw new ArgumentNullException(nameof(s));
+                throw new ArgumentException("Value cannot be null or whitespace.", nameof(s));
             }
 
-            //
             try
             {
-                MultiBaseCoder codec = GetAlgorithm(s[0]);
-                var decoded = codec!.Decode(s[1..]);
-                if(decoded is null | decoded?.Length == 0)
+                var codec = GetAlgorithm(s[0])
+                    ?? throw new FormatException($"Unknown multibase prefix '{s[0]}'.");
+
+                var decoded = codec.Decode(s[1..]);
+
+                if (decoded is null || decoded.Length == 0)
                 {
-                    throw new InvalidOperationException(nameof(decoded));
+                    throw new FormatException("Decoded value is empty.");
                 }
-                return decoded!;
+
+                return decoded;
+            }
+            catch (FormatException)
+            {
+                throw;
             }
             catch (Exception e)
             {

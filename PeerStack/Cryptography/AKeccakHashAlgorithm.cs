@@ -38,7 +38,7 @@ namespace PeerStack.Cryptography
         public override bool CanReuseTransform => true;
 
         /// <inheritdoc/>
-        public override byte[] Hash => HashValue;
+        public override byte[] Hash => HashValue ?? [];
 
         /// <inheritdoc/>
         public override int HashSize => HashSizeValue;

@@ -34,18 +34,18 @@ namespace PeerStack.Multiformat
         /// <summary>
         ///   The multibase code assigned to the codec.
         /// </summary>
-        /// <value>
+        /// <va>
         ///   Valid codes at <see href="https://github.com/multiformats/multibase/blob/master/multibase.csv"/>.
-        /// </value>
+        /// </va>
         public char Code { get; private set; }
 
         /// <summary>
         ///   The name of the codec.
         /// </summary>
-        /// <value>
+        /// <va>
         ///   A unique name.
-        /// </value>
-        public string? Name { get; private set; }
+        /// </va>
+        public string Name { get; private set; }
 
         /// <summary>
         /// The specific multiformat type
@@ -55,12 +55,12 @@ namespace PeerStack.Multiformat
         /// <summary>
         ///   Returns codec function that can return codec string from codec byte array.
         /// </summary>
-        public Func<byte[], string>? Encode { get; private set; }
+        public Func<byte[], string> Encode { get; private set; }
 
         /// <summary>
         ///   Returns codec function that can return codec byte array from codec string.
         /// </summary>
-        public Func<string, byte[]>? Decode { get; private set; }
+        public Func<string, byte[]> Decode { get; private set; }
 
 
         /// <summary>
@@ -97,6 +97,14 @@ namespace PeerStack.Multiformat
         private MultiBaseCoder()
         {
             Name = string.Empty;
+            Encode = (_) =>
+            {
+                return string.Empty;
+            };
+            Decode = (_) =>
+            {
+                return [];
+            };
         }
          
         /// <summary>
@@ -119,14 +127,14 @@ namespace PeerStack.Multiformat
         /// <returns>
         ///   A new <see cref="MultiBaseAlgorithm"/>.
         /// </returns>
-        public static MultiBaseCoder Register(string name, char code, Func<byte[], string> encode = null, Func<string, byte[]> decode = null)
+        public static MultiBaseCoder Register(string name, char code, Func<byte[], string> encode, Func<string, byte[]> decode)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
                 throw new ArgumentNullException(nameof(name));
             }
              
-
+            //
             encode ??= (_) => throw new NotImplementedException(string.Format("The multibase encode algorithm '{0}' is not implemented.", name));
             decode ??= (_) => throw new NotImplementedException(string.Format("The multibase decode algorithm '{0}' is not implemented.", name));
 

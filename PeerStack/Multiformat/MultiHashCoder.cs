@@ -53,7 +53,7 @@ namespace PeerStack.Multiformat
         /// <value>
         ///   A unique name.
         /// </value>
-        public string? Name { get; private set; }
+        public string Name { get; private set; }
 
         /// <summary>
         ///   The size, in bytes, of the Digest value.
@@ -71,7 +71,7 @@ namespace PeerStack.Multiformat
         /// <summary>
         ///   Returns a cryptographic hash algorithm that can compute a hash (Digest).
         /// </summary>
-        public Func<HashAlgorithm>? Hasher { get; private set; }
+        public Func<HashAlgorithm> Hasher { get; private set; }
 
         /// <summary>
         ///   A set consisting of all <see cref="MultiHashCoder">hashing algorithms</see>.
@@ -129,8 +129,13 @@ namespace PeerStack.Multiformat
         private MultiHashCoder()
         {
             Name = string.Empty;
-            Hasher = null;
-             
+            // Set Hasher to the default IdentityHashAlgorithm when the parameterless
+            // constructor is called. This ensures Hasher is initialized before the
+            // constructor exits.
+            Hasher = () =>
+            {
+                return new IdentityHashAlgorithm();
+            };
         }
 
         /// <summary>

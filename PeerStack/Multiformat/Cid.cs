@@ -1,5 +1,6 @@
 ﻿using Google.Protobuf;
 using PeerStack.Encoding;
+using PeerStack.Utilities.Extensions;
 using System.Text;
 
 namespace PeerStack.Multiformat

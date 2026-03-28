@@ -34,7 +34,7 @@ namespace PeerStack.Multiformat
         /// <value>
         ///   A unique name.
         /// </value>
-        public string? Name { get; private set; }
+        public string Name { get; private set; }
         
         /// <summary>
         ///   The tag categorization of the codec.
@@ -42,7 +42,7 @@ namespace PeerStack.Multiformat
         /// <value>
         ///   A unique tag.
         /// </value>
-        public string? Tag { get; private set; }
+        public string Tag { get; private set; }
 
         /// <summary>
         /// The specific multiformat type

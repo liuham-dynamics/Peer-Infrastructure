@@ -1,6 +1,6 @@
 ﻿using Google.Protobuf;
-using PeerStack;
 using PeerStack.Multiformat;
+using PeerStack.Utilities.Extensions;
 using System.Collections.Immutable;
 using System.Runtime.Serialization;
 

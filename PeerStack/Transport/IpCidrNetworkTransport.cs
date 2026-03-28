@@ -1,4 +1,5 @@
 ﻿using Google.Protobuf;
+using PeerStack.Utilities.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
