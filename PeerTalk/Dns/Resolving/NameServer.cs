@@ -17,7 +17,7 @@ namespace PeerTalk.Dns.Resolving
         ///   A subset of the DNS database. Typically (1) one or more zones or (2) a cache of received
         ///   responses.
         /// </value>
-        public Catalog Catalog { get; set; }
+        public Catalog Catalog { get; set; } = [];
 
         /// <summary>
         ///   Determines how multiple questions are answered.
@@ -34,9 +34,7 @@ namespace PeerTalk.Dns.Resolving
         public bool AnswerAllQuestions { get; set; }
 
         /// <inheritdoc />
-        public async Task<Message> ResolveAsync(
-            Message request,
-            CancellationToken cancel = default)
+        public async Task<Message> ResolveAsync(Message request, CancellationToken cancel = default)
         {
             var response = request.CreateResponse();
 
@@ -44,7 +42,9 @@ namespace PeerTalk.Dns.Resolving
             {
                 await ResolveAsync(question, response, cancel);
                 if (response.Answers.Count > 0 && !AnswerAllQuestions)
+                {
                     break;
+                }
             }
 
             if (response.Answers.Count > 0)
@@ -55,19 +55,17 @@ namespace PeerTalk.Dns.Resolving
             // Remove duplicate records.
             if (response.Answers.Count > 1)
             {
-                response.Answers = response.Answers.Distinct().ToList();
+                response.Answers = [.. response.Answers.Distinct()];
             }
             if (response.AuthorityRecords.Count > 1)
             {
-                response.AuthorityRecords = response.AuthorityRecords.Distinct().ToList();
+                response.AuthorityRecords = [.. response.AuthorityRecords.Distinct()];
             }
 
             // Remove additional records that are also answers.
             if (response.AdditionalRecords.Count > 0)
             {
-                response.AdditionalRecords = response.AdditionalRecords
-                    .Where(a => !response.Answers.Contains(a))
-                    .ToList();
+                response.AdditionalRecords = [.. response.AdditionalRecords.Where(a => !response.Answers.Contains(a))];
             }
 
             return await AddSecurityExtensionsAsync(request, response);
@@ -94,9 +92,12 @@ namespace PeerTalk.Dns.Resolving
         ///   If the question's domain does not exist, then the closest authority
         ///   (<see cref="SOARecord"/>) is added to the <see cref="Message.AuthorityRecords"/>.
         /// </remarks>
-        public async Task<Message> ResolveAsync(Question question, Message response = null, CancellationToken cancel = default)
+        public async Task<Message> ResolveAsync(Question question, Message? response = null, CancellationToken cancel = default)
         {
-            response ??= new Message { QR = true };
+            response ??= new Message
+            {
+                QR = true
+            };
 
             // Get answer and details of the domain.
             bool found = await FindAnswerAsync(question, response, cancel);
@@ -108,7 +109,7 @@ namespace PeerTalk.Dns.Resolving
 
             // Add the NS records for the answered domain into the
             // the authority section.
-            if (found && soa != null)
+            if (found && soa is not null)
             {
                 var res = new Message();
                 var q = new Question { Name = soa.Name, Class = soa.Class, Type = DnsType.NS };
@@ -119,14 +120,14 @@ namespace PeerTalk.Dns.Resolving
             // If a name error, then add the domain authority.
             if (response.Status == MessageStatus.NameError)
             {
-                if (soa != null)
+                if (soa is not null)
                 {
                     response.AuthorityRecords.Add(soa);
                 }
             }
 
             // Add additonal records.
-            AddAdditionalRecords(response);
+           await AddAdditionalRecords(response);
 
             return response;
         }
@@ -150,12 +151,11 @@ namespace PeerTalk.Dns.Resolving
         /// <remarks>
         ///   Derived classes must implement this method.
         /// </remarks>
-        protected Task<bool> FindAnswerAsync(Question question, Message response, CancellationToken cancel)
+        protected async Task<bool> FindAnswerAsync(Question question, Message response, CancellationToken cancel)
         {
-            // Find a node for the question name.
-            if (!Catalog.TryGetValue(question.Name, out Node node))
+            if (!Catalog.TryGetValue(question.Name, out var node) || node is null)
             {
-                return Task.FromResult(false);
+                return false;
             }
 
             // https://tools.ietf.org/html/rfc1034#section-3.7.1
@@ -170,48 +170,51 @@ namespace PeerTalk.Dns.Resolving
             if (resources.Length > 0)
             {
                 response.Answers.AddRange(resources);
-                return Task.FromResult(true);
+                return true;
             }
 
             // If node is alias (CNAME), then find answers for the alias' target.
             // The CNAME is added to the answers.
             var cname = node.Resources.OfType<CNAMERecord>().FirstOrDefault();
-            if (cname != null)
+            if (cname is not null)
             {
                 response.Answers.Add(cname);
                 question = question.Clone<Question>();
                 question.Name = cname.Target;
-                return FindAnswerAsync(question, response, cancel);
+                return await FindAnswerAsync(question, response, cancel);
             }
 
             // Nothing more can be done.
-            return Task.FromResult(false);
+            return false;
         }
 
-        private SOARecord FindAuthority(DomainName domainName)
+        private SOARecord? FindAuthority(DomainName domainName)
         {
             var name = domainName;
-            while (name != null)
+            while (name is not null)
             {
-                if (Catalog.TryGetValue(name, out Node node))
+                if (Catalog.TryGetValue(name, out var node) && node is not null)
                 {
                     var soa = node.Resources.OfType<SOARecord>().FirstOrDefault();
-                    if (soa != null) return soa;
+                    if (soa is not null)
+                    {
+                        return soa;
+                    }
                 }
+
                 name = name.Parent();
             }
 
-            return null;
+            return default;
         }
 
-        private void AddAdditionalRecords(Message response)
+        private async Task AddAdditionalRecords(Message response)
         {
             var extras = new Message();
             var resources = response.Answers
                 .Concat(response.AdditionalRecords)
                 .Concat(response.AuthorityRecords);
             var question = new Question();
-            bool _;
             foreach (var resource in resources)
             {
                 switch (resource.Type)
@@ -220,18 +223,18 @@ namespace PeerTalk.Dns.Resolving
                         question.Class = resource.Class;
                         question.Name = resource.Name;
                         question.Type = DnsType.AAAA;
-                        _ = FindAnswerAsync(question, extras, default).Result;
+                        await FindAnswerAsync(question, extras, default);
                         break;
 
                     case DnsType.AAAA:
                         question.Class = resource.Class;
                         question.Name = resource.Name;
                         question.Type = DnsType.A;
-                        _ = FindAnswerAsync(question, extras, default).Result;
+                        await FindAnswerAsync(question, extras, default);
                         break;
 
                     case DnsType.NS:
-                        FindAddresses(((NSRecord)resource).Authority, resource.Class, extras);
+                        await FindAddresses(((NSRecord)resource).Authority, resource.Class, extras);
                         break;
 
                     case DnsType.PTR:
@@ -240,20 +243,20 @@ namespace PeerTalk.Dns.Resolving
                         question.Class = resource.Class;
                         question.Name = ptr.DomainName;
                         question.Type = DnsType.ANY;
-                        _ = FindAnswerAsync(question, extras, default).Result;
+                        await FindAnswerAsync(question, extras, default);
                         break;
 
                     case DnsType.SOA:
-                        FindAddresses(((SOARecord)resource).PrimaryName, resource.Class, extras);
+                        await FindAddresses(((SOARecord)resource).PrimaryName, resource.Class, extras);
                         break;
 
                     case DnsType.SRV:
                         question.Class = resource.Class;
                         question.Name = resource.Name;
                         question.Type = DnsType.TXT;
-                        _ = FindAnswerAsync(question, extras, default).Result;
+                        await FindAnswerAsync(question, extras, default);
 
-                        FindAddresses(((SRVRecord)resource).Target, resource.Class, extras);
+                        await FindAddresses(((SRVRecord)resource).Target, resource.Class, extras);
                         break;
 
                     default:
@@ -262,21 +265,19 @@ namespace PeerTalk.Dns.Resolving
             }
 
             // Add extras with no duplication.
-            extras.Answers = extras.Answers
-                .Where(a => !response.Answers.Contains(a)
-                && !response.AdditionalRecords.Contains(a))
-                .Distinct()
-                .ToList();
+            extras.Answers = [.. extras.Answers
+                                .Where(a => !response.Answers.Contains(a) && !response.AdditionalRecords.Contains(a))
+                                .Distinct()];
             response.AdditionalRecords.AddRange(extras.Answers);
 
             // Add additionals for any extras.
             if (extras.Answers.Count > 0)
             {
-                AddAdditionalRecords(response);
+                await AddAdditionalRecords(response);
             }
         }
 
-        private void FindAddresses(DomainName name, DnsClass klass, Message response)
+        private async Task FindAddresses(DomainName name, DnsClass klass, Message response)
         {
             var question = new Question
             {
@@ -284,13 +285,11 @@ namespace PeerTalk.Dns.Resolving
                 Class = klass,
                 Type = DnsType.A
             };
-            var _ = FindAnswerAsync(question, response, default).Result;
 
+            await FindAnswerAsync(question, response, default);
             question.Type = DnsType.AAAA;
-            _ = FindAnswerAsync(question, response, default).Result;
+            await FindAnswerAsync(question, response, default);
         }
-
-
 
         /// <summary>
         /// Add Security Extensions
@@ -340,9 +339,9 @@ namespace PeerTalk.Dns.Resolving
                     continue;
                 }
                 rrset.AddRange(signatures.Answers
-                    .OfType<RRSIGRecord>()
-                    .Where(r => r.TypeCovered == need.Type)
-                    );
+                     .OfType<RRSIGRecord>()
+                     .Where(r => r.TypeCovered == need.Type)
+                        );
             }
         }
     }

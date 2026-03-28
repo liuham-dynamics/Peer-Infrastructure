@@ -42,7 +42,7 @@ namespace PeerTalk.Dns.Resolving
         /// <remarks>
         ///   Duplicate resources are silently ignored.
         /// </remarks>
-        public ConcurrentSet<ResourceRecord> Resources { get; set; } = new ConcurrentSet<ResourceRecord>();
+        public ConcurrentSet<ResourceRecord> Resources { get; set; } = [];
 
         /// <summary>
         ///   Indicates that the node's resources contains the complete information for

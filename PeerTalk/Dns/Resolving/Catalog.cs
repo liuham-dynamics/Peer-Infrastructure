@@ -40,7 +40,7 @@ namespace PeerTalk.Dns.Resolving
             while (true)
             {
                 var r = reader.ReadResourceRecord();
-                if (r == null)
+                if (r is null)
                 {
                     break;
                 }
@@ -49,12 +49,18 @@ namespace PeerTalk.Dns.Resolving
 
             // Validation
             if (resources.Count == 0)
+            {
                 throw new InvalidDataException("No resources.");
+            }
             if (resources[0].Type != DnsType.SOA)
+            {
                 throw new InvalidDataException("First resource record must be a SOA.");
+            }
             var soa = (SOARecord)resources[0];
             if (resources.Any(r => !r.Name.BelongsTo(soa.Name)))
+            {
                 throw new InvalidDataException("All resource records must belong to the zone.");
+            }
 
             // Insert the nodes of the zone.
             var nodes = resources.GroupBy(
@@ -63,13 +69,15 @@ namespace PeerTalk.Dns.Resolving
                 {
                     Name = key,
                     Authoritative = true,
-                    Resources = new ConcurrentSet<ResourceRecord>(results)
+                    Resources = [.. results]
                 }
             );
             foreach (var node in nodes)
             {
                 if (!TryAdd(node.Name, node))
+                {
                     throw new InvalidDataException($"'{node.Name}' already exists.");
+                }
             }
 
             return this[soa.Name];
@@ -86,7 +94,7 @@ namespace PeerTalk.Dns.Resolving
             var keys = Keys.Where(k => k.BelongsTo(name));
             foreach (var key in keys)
             {
-                TryRemove(key, out Node _);
+                _ = TryRemove(key, out _);
             }
         }
 
@@ -171,7 +179,7 @@ namespace PeerTalk.Dns.Resolving
             while (true)
             {
                 var r = reader.ReadResourceRecord();
-                if (r == null)
+                if (r is null)
                 {
                     break;
                 }
@@ -192,12 +200,12 @@ namespace PeerTalk.Dns.Resolving
         public IEnumerable<Node> NodesInCanonicalOrder()
         {
             return Values
-                .OrderBy(node =>
-                {
-                    var co = node.Name.ToCanonical().Labels.Reverse().ToArray();
-                    var coname = new DomainName(co);
-                    return coname.ToString();
-                });
+                    .OrderBy(node =>
+                    {
+                        var co = node.Name.ToCanonical().Labels.Reverse().ToArray();
+                        var coname = new DomainName(co);
+                        return coname.ToString();
+                    });
         }
 
         /// <summary>
