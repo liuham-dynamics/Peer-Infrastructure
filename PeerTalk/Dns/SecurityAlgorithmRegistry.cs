@@ -14,79 +14,63 @@ namespace PeerTalk.Dns
     public static class SecurityAlgorithmRegistry
     {
         /// <summary>
-        ///   Metadata on a <see cref="SecurityAlgorithm"/>.
-        /// </summary>
-        /// <remarks>
-        ///   Used by the <see cref="SecurityAlgorithmRegistry"/>.
-        /// </remarks>
-        public class Metadata
-        {
-            /// <summary>
-            ///   The cryptographic hash algorithm to use.
-            /// </summary>
-            public DigestType HashAlgorithm { get; set; }
-
-            /// <summary>
-            ///   Other names associated with the algorithm.
-            /// </summary>
-            public string[] OtherNames { get; set; } = new string[0];
-        }
-
-        /// <summary>
         ///   Defined security algorithms.
         /// </summary>
         /// <remarks>
         ///   The key is the <see cref="SecurityAlgorithm"/>.
-        ///   The value is th <see cref="Metadata"/>.
+        ///   The value is th <see cref="SecurityAlgorithmMetadata"/>.
         /// </remarks>
-        public static Dictionary<SecurityAlgorithm, Metadata> Algorithms;
+        public static Dictionary<SecurityAlgorithm, SecurityAlgorithmMetadata> Algorithms;
 
+        /// <summary>
+        ///  
+        /// </summary>
         static SecurityAlgorithmRegistry()
         {
-            Algorithms = new Dictionary<SecurityAlgorithm, Metadata>
+            Algorithms = new Dictionary<SecurityAlgorithm, SecurityAlgorithmMetadata>
             {
                 {
                     SecurityAlgorithm.RSASHA1,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha1,
                     }
                 },
                 {
                     SecurityAlgorithm.RSASHA256,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha256,
                     }
                 },
                 {
                     SecurityAlgorithm.RSASHA512,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha512,
                     }
                 },
                 {
                     SecurityAlgorithm.DSA,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha1,
                     }
                 },
                 {
                     SecurityAlgorithm.ECDSAP256SHA256,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha256,
-                        OtherNames = new string[] { "nistP256", "ECDSA_P256" },
+                        OtherNames = ["nistP256", "ECDSA_P256"],
                     }
                 },
                 {
                     SecurityAlgorithm.ECDSAP384SHA384,
-                    new Metadata
+                    new SecurityAlgorithmMetadata
                     {
                         HashAlgorithm = DigestType.Sha384,
-                        OtherNames = new string[] { "nistP384", "ECDSA_P384" },
+                        OtherNames = ["nistP384", "ECDSA_P384"],
                     }
                 }
             };
@@ -102,18 +86,19 @@ namespace PeerTalk.Dns
         ///   One of the <see cref="SecurityAlgorithm"/> values.
         /// </param>
         /// <returns>
-        ///   The <see cref="Metadata"/> for the <paramref name="algorithm"/>.
+        ///   The <see cref="SecurityAlgorithmMetadata"/> for the <paramref name="algorithm"/>.
         /// </returns>
         /// <exception cref="NotImplementedException">
         ///   When the <paramref name="algorithm"/> is not defined.
         /// </exception>
-        public static Metadata GetMetadata(SecurityAlgorithm algorithm)
+        public static SecurityAlgorithmMetadata GetMetadata(SecurityAlgorithm algorithm)
         {
-            if (Algorithms.TryGetValue(algorithm, out Metadata metadata))
+            if (Algorithms.TryGetValue(algorithm, out var metadata) && metadata is not null)
             {
                 return metadata;
             }
-            throw new NotImplementedException($"The security algorithm '{algorithm}' is not defined.");
+
+            throw new NotSupportedException($"The security algorithm '{algorithm}' is not defined.");
         }
     }
 }

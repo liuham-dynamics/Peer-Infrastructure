@@ -15,7 +15,7 @@ namespace PeerTalk.Dns
     ///   effectively with minimal impact on the DNS transaction time.
     /// </remarks>
     /// <seealso href="https://tools.ietf.org/html/rfc7828"/>
-    public class EdnsKeepaliveOption : EdnsOption
+    public sealed class EdnsKeepaliveOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsKeepaliveOption"/> class.
@@ -36,17 +36,12 @@ namespace PeerTalk.Dns
         /// <inheritdoc />
         public override void ReadData(DnsWireReader reader, int length)
         {
-            switch (length)
+            Timeout = length switch
             {
-                case 0:
-                    Timeout = null;
-                    break;
-                case 2:
-                    Timeout = TimeSpan.FromMilliseconds((int)reader.ReadUInt16() * 100);
-                    break;
-                default:
-                    throw new InvalidDataException($"Invalid EdnsKeepAlive length of '{length}'.");
-            }
+                0 => null,
+                2 => (TimeSpan?)TimeSpan.FromMilliseconds((int)reader.ReadUInt16() * 100),
+                _ => throw new InvalidDataException($"Invalid EdnsKeepAlive length of '{length}'."),
+            };
         }
 
         /// <inheritdoc />

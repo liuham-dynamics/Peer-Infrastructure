@@ -16,7 +16,7 @@ namespace PeerTalk.Dns
     ///  </para>
     /// </remarks>
     /// <seealso cref="DSRecord"/>
-    public class EdnsDHUOption : EdnsOption
+    public sealed class EdnsDHUOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsDHUOption"/> class.
@@ -24,7 +24,7 @@ namespace PeerTalk.Dns
         public EdnsDHUOption()
         {
             Type = EdnsOptionType.DHU;
-            Algorithms = new List<DigestType>();
+            Algorithms = [];
         }
 
         /// <summary>

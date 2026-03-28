@@ -325,7 +325,7 @@ namespace PeerTalk.Dns.Resolving
         /// </remarks>
         private async Task AddSecurityResourcesAsync(List<ResourceRecord> rrset)
         {
-            // Get the signature names and types that are needed.  Then
+            // Get the signature _memberNames and types that are needed.  Then
             // add the corresponding RRSIG records to the rrset.
             var neededSignatures = rrset
                 .Where(r => r.CanonicalName != string.Empty) // ignore pseudo records as

@@ -33,7 +33,7 @@ namespace PeerTalk.Dns.Records
         ///   Defaults to 1 day.
         /// </value>
         /// <remarks>
-        ///   Host names are in A, AAAA, and HINFO records.
+        ///   Host _memberNames are in A, AAAA, and HINFO records.
         /// </remarks>
         public static TimeSpan DefaultHostTTL = timeSpan;
 

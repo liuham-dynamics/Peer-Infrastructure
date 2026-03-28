@@ -6,7 +6,7 @@ using System.Text;
 namespace PeerTalk.Dns
 {
     /// <summary>
-    ///   Metadata on resource records.
+    ///   SecurityAlgorithmMetadata on resource records.
     /// </summary>
     /// <see cref="ResourceRecord"/>
     public static class ResourceRegistry
@@ -18,11 +18,11 @@ namespace PeerTalk.Dns
         ///   The key is the DNS Resource Record type, <see cref="DnsType"/>.
         ///   The value is a function that returns a new <see cref="ResourceRecord"/>.
         /// </remarks>
-        public static Dictionary<DnsType, Func<ResourceRecord>> Records;
+        public static readonly Dictionary<DnsType, Func<ResourceRecord>> Records;
 
         static ResourceRegistry()
         {
-            Records = new Dictionary<DnsType, Func<ResourceRecord>>();
+            Records = [];
             Register<ARecord>();
             Register<AAAARecord>();
             Register<AFSDBRecord>();
@@ -82,10 +82,11 @@ namespace PeerTalk.Dns
         /// </remarks>
         public static ResourceRecord Create(DnsType type)
         {
-            if (Records.TryGetValue(type, out Func<ResourceRecord> maker))
+            if (Records.TryGetValue(type, out var maker) && maker is not null)
             {
                 return maker();
             }
+
             return new UnknownRecord();
         }
     }

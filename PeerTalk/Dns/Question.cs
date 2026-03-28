@@ -13,7 +13,7 @@ namespace PeerTalk.Dns
         /// <summary>
         ///    A domain name to query.
         /// </summary>
-        public DomainName Name { get; set; }
+        public DomainName Name { get; set; } = string.Empty;
 
         /// <summary>
         ///    A two octet code which specifies the type of the query.

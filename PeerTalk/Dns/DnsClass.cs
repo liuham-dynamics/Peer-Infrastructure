@@ -21,6 +21,7 @@ namespace PeerTalk.Dns
         /// <summary>
         ///   The CSNET class (Obsolete - used only for examples insome obsolete RFCs).
         /// </summary>
+        [Obsolete("Used only for obsolete RFCs")]
         CS = 2,
 
         /// <summary>

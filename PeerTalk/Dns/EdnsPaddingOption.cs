@@ -14,7 +14,7 @@ namespace PeerTalk.Dns
     ///  Defined in <see href="https://tools.ietf.org/html/rfc7830">RFC 7830 - The EDNS(0) Padding Option</see>
     ///  </para>
     /// </remarks>
-    public class EdnsPaddingOption : EdnsOption
+    public class EdnsPaddingOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsPaddingOption"/> class.

@@ -11,16 +11,16 @@ namespace PeerTalk.Dns
     /// </summary>
     public class DnsWireWriter
     {
-        private const int maxPointer = 0x3FFF;
-        private const ulong uint48MaxValue = 0XFFFFFFFFFFFFul;
-        private static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private const int _memberMaxPointer = 0x3FFF;
+        private const ulong _memberUint48MaxValue = 0XFFFFFFFFFFFFul;
+        private static readonly DateTime _memberUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        private Stream stream;
-        private Dictionary<string, int> pointers = new();
-        private Stack<Stream> scopes = new();
+        private Stream _memberStream = Stream.Null;
+        private Dictionary<string, int> _memberPointers = [];
+        private Stack<Stream> _memberScopes = new();
 
         /// <summary>
-        ///   The writer relative position within the stream.
+        ///   The writer relative position within the _memberStream.
         /// </summary>
         public int Position;
 
@@ -33,7 +33,7 @@ namespace PeerTalk.Dns
         /// </param>
         public DnsWireWriter(Stream stream)
         {
-            this.stream = stream;
+            this._memberStream = stream;
         }
 
         /// <summary>
@@ -46,45 +46,45 @@ namespace PeerTalk.Dns
         /// <remarks>
         ///   When enabled, the following rules are applied
         ///   <list type="bullet">
-        ///   <item><description>Domain names are uncompressed</description></item>
-        ///   <item><description>Domain names are converted to US-ASCII lowercase</description></item>
+        ///   <item><description>Domain _memberNames are uncompressed</description></item>
+        ///   <item><description>Domain _memberNames are converted to US-ASCII lowercase</description></item>
         ///   </list>
         /// </remarks>
         /// <seealso href="https://tools.ietf.org/html/rfc4034#section-6.2"/>
         public bool CanonicalForm { get; set; }
 
         /// <summary>
-        ///   Start a length prefixed stream.
+        ///   Start a length prefixed _memberStream.
         /// </summary>
         /// <remarks>
-        ///   A memory stream is created for writing.  When it is popped,
-        ///   the memory stream's position is writen as an UInt16 and its
-        ///   contents are copied to the current stream.
+        ///   A memory _memberStream is created for writing.  When it is popped,
+        ///   the memory _memberStream's position is writen as an UInt16 and its
+        ///   contents are copied to the current _memberStream.
         /// </remarks>
         public void PushLengthPrefixedScope()
         {
-            scopes.Push(stream);
-            stream = new MemoryStream();
+            _memberScopes.Push(_memberStream);
+            _memberStream = new MemoryStream();
             Position += 2; // count the length prefix
         }
 
         /// <summary>
-        ///   Start a length prefixed stream.
+        ///   Start a length prefixed _memberStream.
         /// </summary>
         /// <remarks>
-        ///   A memory stream is created for writing.  When it is popped,
-        ///   the memory stream's position is writen as an UInt16 and its
-        ///   contents are copied to the current stream.
+        ///   A memory _memberStream is created for writing.  When it is popped,
+        ///   the memory _memberStream's position is writen as an UInt16 and its
+        ///   contents are copied to the current _memberStream.
         /// </remarks>
         public ushort PopLengthPrefixedScope()
         {
-            var lp = stream;
+            var lp = _memberStream;
             var length = (ushort)lp.Position;
-            stream = scopes.Pop();
+            _memberStream = _memberScopes.Pop();
             WriteUInt16(length);
             Position -= 2;
             lp.Position = 0;
-            lp.CopyTo(stream);
+            lp.CopyTo(_memberStream);
 
             return length;
         }
@@ -94,7 +94,7 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteByte(byte value)
         {
-            stream.WriteByte(value);
+            _memberStream.WriteByte(value);
             ++Position;
         }
 
@@ -108,7 +108,7 @@ namespace PeerTalk.Dns
         {
             if (bytes != null)
             {
-                stream.Write(bytes, 0, bytes.Length);
+                _memberStream.Write(bytes, 0, bytes.Length);
                 Position += bytes.Length;
             }
         }
@@ -124,12 +124,15 @@ namespace PeerTalk.Dns
         /// </exception>
         public void WriteByteLengthPrefixedBytes(byte[] bytes)
         {
-            var length = bytes?.Length ?? 0;
-            if (length > byte.MaxValue)
-                throw new ArgumentException($"Length can not exceed {byte.MaxValue}.", nameof(bytes));
+            ArgumentNullException.ThrowIfNull(bytes);
 
-            WriteByte((byte)length);
-            WriteBytes(bytes);
+            if (bytes.Length > byte.MaxValue)
+            {
+                throw new ArgumentException($"Length can not exceed {byte.MaxValue}.", nameof(bytes));
+            }
+
+            WriteByte((byte)bytes.Length);
+            WriteBytes(bytes!);
         }
 
         /// <summary>
@@ -143,11 +146,14 @@ namespace PeerTalk.Dns
         /// </exception>
         public void WriteUint16LengthPrefixedBytes(byte[] bytes)
         {
-            var length = bytes?.Length ?? 0;
-            if (length > ushort.MaxValue)
-                throw new ArgumentException($"Bytes length can not exceed {ushort.MaxValue}.");
+            ArgumentNullException.ThrowIfNull(bytes);
 
-            WriteUInt16((ushort)length);
+            if (bytes.Length > ushort.MaxValue)
+            {
+                throw new ArgumentException($"Bytes length can not exceed {ushort.MaxValue}.");
+            }
+
+            WriteUInt16((ushort)bytes.Length);
             WriteBytes(bytes);
         }
 
@@ -156,8 +162,8 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteUInt16(ushort value)
         {
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)value);
+            _memberStream.WriteByte((byte)(value >> 8));
+            _memberStream.WriteByte((byte)value);
             Position += 2;
         }
 
@@ -166,10 +172,10 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteUInt32(uint value)
         {
-            stream.WriteByte((byte)(value >> 24));
-            stream.WriteByte((byte)(value >> 16));
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)value);
+            _memberStream.WriteByte((byte)(value >> 24));
+            _memberStream.WriteByte((byte)(value >> 16));
+            _memberStream.WriteByte((byte)(value >> 8));
+            _memberStream.WriteByte((byte)value);
             Position += 4;
         }
 
@@ -178,17 +184,17 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteUInt48(ulong value)
         {
-            if (value > uint48MaxValue)
+            if (value > _memberUint48MaxValue)
             {
                 throw new ArgumentException("Value is greater than 48 bits.");
             }
 
-            stream.WriteByte((byte)(value >> 40));
-            stream.WriteByte((byte)(value >> 32));
-            stream.WriteByte((byte)(value >> 24));
-            stream.WriteByte((byte)(value >> 16));
-            stream.WriteByte((byte)(value >> 8));
-            stream.WriteByte((byte)value);
+            _memberStream.WriteByte((byte)(value >> 40));
+            _memberStream.WriteByte((byte)(value >> 32));
+            _memberStream.WriteByte((byte)(value >> 24));
+            _memberStream.WriteByte((byte)(value >> 16));
+            _memberStream.WriteByte((byte)(value >> 8));
+            _memberStream.WriteByte((byte)value);
             Position += 6;
         }
 
@@ -207,7 +213,7 @@ namespace PeerTalk.Dns
         ///   When a label length is greater than 63 octets.
         /// </exception>
         /// <remarks>
-        ///   A domain name is represented as a sequence of labels, where
+        ///   A domain name is represented as a sequence of _memberLabels, where
         ///   each label consists of a length octet followed by that
         ///   number of octets.The domain name terminates with the
         ///   zero length octet for the null label of the root. Note
@@ -218,7 +224,7 @@ namespace PeerTalk.Dns
         {
             if (string.IsNullOrEmpty(name))
             {
-                stream.WriteByte(0); // terminating byte
+                _memberStream.WriteByte(0); // terminating byte
                 ++Position;
                 return;
             }
@@ -240,7 +246,7 @@ namespace PeerTalk.Dns
         ///   When a label length is greater than 63 octets.
         /// </exception>
         /// <remarks>
-        ///   A domain name is represented as a sequence of labels, where
+        ///   A domain name is represented as a sequence of _memberLabels, where
         ///   each label consists of a length octet followed by that
         ///   number of octets.The domain name terminates with the
         ///   zero length octet for the null label of the root. Note
@@ -249,9 +255,9 @@ namespace PeerTalk.Dns
         /// </remarks>
         public void WriteDomainName(DomainName name, bool uncompressed = false)
         {
-            if (name == null)
+            if (name is null)
             {
-                stream.WriteByte(0); // terminating byte
+                _memberStream.WriteByte(0); // terminating byte
                 ++Position;
                 return;
             }
@@ -272,14 +278,14 @@ namespace PeerTalk.Dns
 
                 // Check for qualified name already used.
                 var qn = string.Join(".", labels, i, labels.Length - i);
-                if (!uncompressed && pointers.TryGetValue(qn, out int pointer))
+                if (!uncompressed && _memberPointers.TryGetValue(qn, out int pointer))
                 {
                     WriteUInt16((ushort)(0xC000 | pointer));
                     return;
                 }
-                if (Position <= maxPointer)
+                if (Position <= _memberMaxPointer)
                 {
-                    pointers[qn] = Position;
+                    _memberPointers[qn] = Position;
                 }
 
                 // Add the label
@@ -287,7 +293,7 @@ namespace PeerTalk.Dns
                 WriteByteLengthPrefixedBytes(bytes);
             }
 
-            stream.WriteByte(0); // terminating byte
+            _memberStream.WriteByte(0); // terminating byte
             ++Position;
         }
 
@@ -358,7 +364,7 @@ namespace PeerTalk.Dns
         /// </remarks>
         public void WriteDateTime32(DateTime value)
         {
-            var seconds = (value.ToUniversalTime() - UnixEpoch).TotalSeconds;
+            var seconds = (value.ToUniversalTime() - _memberUnixEpoch).TotalSeconds;
             WriteUInt32(Convert.ToUInt32(seconds));
         }
 
@@ -379,7 +385,7 @@ namespace PeerTalk.Dns
         /// </remarks>
         public void WriteDateTime48(DateTime value)
         {
-            var seconds = (value.ToUniversalTime() - UnixEpoch).TotalSeconds;
+            var seconds = (value.ToUniversalTime() - _memberUnixEpoch).TotalSeconds;
             WriteUInt48(Convert.ToUInt64(seconds));
         }
 
@@ -429,8 +435,8 @@ namespace PeerTalk.Dns
                     mask.RemoveAt(i);
                 }
 
-                stream.WriteByte((byte)window.Window);
-                stream.WriteByte((byte)mask.Count);
+                _memberStream.WriteByte((byte)window.Window);
+                _memberStream.WriteByte((byte)mask.Count);
                 Position += 2;
                 WriteBytes(mask.ToArray());
             }
@@ -453,9 +459,12 @@ namespace PeerTalk.Dns
                 }
                 bitCount--;
             }
+
             // Last partially decoded byte
             if (bitCount < 7)
+            {
                 yield return (byte)outByte;
+            }
         }
     }
 }

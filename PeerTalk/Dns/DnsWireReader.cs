@@ -10,13 +10,12 @@ namespace PeerTalk.Dns
     /// </summary>
     public class DnsWireReader
     {
-        static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        Stream stream;
-        readonly Dictionary<int, List<string>> names = new Dictionary<int, List<string>>();
+        private static readonly DateTime _memberUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private readonly Dictionary<int, List<string>> _memberNames = [];
+        private readonly Stream _memberStream = Stream.Null;
 
         /// <summary>
-        ///   The reader relative position within the stream.
+        ///   The reader relative position within the _memberStream.
         /// </summary>
         public int Position;
 
@@ -29,23 +28,25 @@ namespace PeerTalk.Dns
         /// </param>
         public DnsWireReader(Stream stream)
         {
-            this.stream = stream;
+            this._memberStream = stream;
         }
 
         /// <summary>
         ///   Read a byte.
         /// </summary>
         /// <returns>
-        ///   The next byte in the stream.
+        ///   The next byte in the _memberStream.
         /// </returns>
         /// <exception cref="EndOfStreamException">
         ///   When no more data is available.
         /// </exception>
         public byte ReadByte()
         {
-            var value = stream.ReadByte();
+            var value = _memberStream.ReadByte();
             if (value < 0)
+            {
                 throw new EndOfStreamException();
+            }
             ++Position;
             return (byte)value;
         }
@@ -57,7 +58,7 @@ namespace PeerTalk.Dns
         ///   The number of bytes to read.
         /// </param>
         /// <returns>
-        ///   The next <paramref name="length"/> bytes in the stream.
+        ///   The next <paramref name="length"/> bytes in the _memberStream.
         /// </returns>
         /// <exception cref="EndOfStreamException">
         ///   When no more data is available.
@@ -67,9 +68,11 @@ namespace PeerTalk.Dns
             var buffer = new byte[length];
             for (var offset = 0; length > 0;)
             {
-                var n = stream.Read(buffer, offset, length);
+                var n = _memberStream.Read(buffer, offset, length);
                 if (n == 0)
+                {
                     throw new EndOfStreamException();
+                }
                 offset += n;
                 length -= n;
                 Position += n;
@@ -169,18 +172,18 @@ namespace PeerTalk.Dns
         ///   Only ASCII characters are allowed.
         /// </exception>
         /// <remarks>
-        ///   A domain name is represented as a sequence of labels, where
+        ///   A domain name is represented as a sequence of _memberLabels, where
         ///   each label consists of a length octet followed by that
         ///   number of octets. The domain name terminates with the
         ///   zero length octet for the null label of the root.
         ///   <note>
-        ///   Compressed domain names are also supported.
+        ///   Compressed domain _memberNames are also supported.
         ///   </note>
         /// </remarks>
         public DomainName ReadDomainName()
         {
             var labels = ReadLabels();
-            var name = new DomainName(labels.ToArray());
+            var name = new DomainName([.. labels]);
             return name;
         }
 
@@ -193,25 +196,25 @@ namespace PeerTalk.Dns
             if ((length & 0xC0) == 0xC0)
             {
                 var cpointer = (length ^ 0xC0) << 8 | ReadByte();
-                var cname = names[cpointer];
-                names[pointer] = cname;
+                var cname = _memberNames[cpointer];
+                _memberNames[pointer] = cname;
                 return cname;
             }
 
             var labels = new List<string>();
-            // End of labels?
+            // End of _memberLabels?
             if (length == 0)
             {
                 return labels;
             }
 
-            // Read current label and remaining labels.
+            // Read current label and remaining _memberLabels.
             var buffer = ReadBytes(length);
             labels.Add(Encoding.UTF8.GetString(buffer, 0, length));
             labels.AddRange(ReadLabels());
 
-            // Add to compressed names.
-            names[pointer] = labels;
+            // Add to compressed _memberNames.
+            _memberNames[pointer] = labels;
 
             return labels;
         }
@@ -337,7 +340,7 @@ namespace PeerTalk.Dns
         public DateTime ReadDateTime32()
         {
             var seconds = ReadUInt32();
-            return UnixEpoch.AddSeconds(seconds);
+            return _memberUnixEpoch.AddSeconds(seconds);
         }
 
         /// <summary>
@@ -353,7 +356,7 @@ namespace PeerTalk.Dns
         public DateTime ReadDateTime48()
         {
             var seconds = ReadUInt48();
-            return UnixEpoch.AddSeconds(seconds);
+            return _memberUnixEpoch.AddSeconds(seconds);
         }
     }
 }

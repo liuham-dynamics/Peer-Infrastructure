@@ -16,7 +16,7 @@ namespace PeerTalk.Dns
     ///  </para>
     /// </remarks>
     /// <seealso cref="NSEC3Record"/>
-    public class EdnsN3UOption : EdnsOption
+    public sealed class EdnsN3UOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsN3UOption"/> class.
@@ -24,7 +24,7 @@ namespace PeerTalk.Dns
         public EdnsN3UOption()
         {
             Type = EdnsOptionType.N3U;
-            Algorithms = new List<DigestType>();
+            Algorithms = [];
         }
 
         /// <summary>

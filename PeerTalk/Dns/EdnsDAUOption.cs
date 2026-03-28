@@ -14,7 +14,7 @@ namespace PeerTalk.Dns
     ///  Signaling Cryptographic Algorithm Understanding in DNS Security Extensions(DNSSEC)</see>
     ///  </para>
     /// </remarks>
-    public class EdnsDAUOption : EdnsOption
+    public sealed class EdnsDAUOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsDAUOption"/> class.
@@ -22,7 +22,7 @@ namespace PeerTalk.Dns
         public EdnsDAUOption()
         {
             Type = EdnsOptionType.DAU;
-            Algorithms = new List<SecurityAlgorithm>();
+            Algorithms = [];
         }
 
         /// <summary>

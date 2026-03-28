@@ -5,9 +5,9 @@ using System.Text;
 namespace PeerTalk.Dns
 {
     /// <summary>
-    ///   Metadata on EDNS options.
+    ///   SecurityAlgorithmMetadata on EDNS options.
     /// </summary>
-    /// <see cref="EdnsOption"/>
+    /// <see cref="AEdnsOption"/>
     public static class EdnsOptionRegistry
     {
         /// <summary>
@@ -15,13 +15,13 @@ namespace PeerTalk.Dns
         /// </summary>
         /// <remarks>
         ///   The key is the <see cref="EdnsOptionType"/>.
-        ///   The value is a function that returns a new <see cref="EdnsOption"/>.
+        ///   The value is a function that returns a new <see cref="AEdnsOption"/>.
         /// </remarks>
-        public static Dictionary<EdnsOptionType, Func<EdnsOption>> Options;
+        public static Dictionary<EdnsOptionType, Func<AEdnsOption>> Options;
 
         static EdnsOptionRegistry()
         {
-            Options = new Dictionary<EdnsOptionType, Func<EdnsOption>>();
+            Options = new Dictionary<EdnsOptionType, Func<AEdnsOption>>();
             Register<EdnsPaddingOption>();
             Register<EdnsNSIDOption>();
             Register<EdnsKeepaliveOption>();
@@ -34,9 +34,9 @@ namespace PeerTalk.Dns
         ///   Register a new EDNS option.
         /// </summary>
         /// <typeparam name="T">
-        ///   A type that is derived from <see cref="EdnsOption"/>.
+        ///   A type that is derived from <see cref="AEdnsOption"/>.
         /// </typeparam>
-        public static void Register<T>() where T : EdnsOption, new()
+        public static void Register<T>() where T : AEdnsOption, new()
         {
             var option = new T();
             Options.Add(option.Type, () => new T());

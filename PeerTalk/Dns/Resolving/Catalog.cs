@@ -134,7 +134,7 @@ namespace PeerTalk.Dns.Resolving
         /// </returns>
         /// <remarks>
         ///   A DNS recursive resolver typically needs a "root hints file". This file
-        ///   contains the names and IP addresses of the authoritative name servers for the root zone,
+        ///   contains the _memberNames and IP addresses of the authoritative name servers for the root zone,
         ///   so the software can bootstrap the DNS resolution process.
         /// </remarks>
         public Node IncludeRootHints()
@@ -185,8 +185,8 @@ namespace PeerTalk.Dns.Resolving
         ///   A sequence of nodes in canonical order.
         /// </returns>
         /// <remarks>
-        ///   Node names are converted to US-ASCII lowercase and
-        ///   then sorted by their reversed labels.
+        ///   Node _memberNames are converted to US-ASCII lowercase and
+        ///   then sorted by their reversed _memberLabels.
         /// </remarks>
         public IEnumerable<Node> NodesInCanonicalOrder()
         {

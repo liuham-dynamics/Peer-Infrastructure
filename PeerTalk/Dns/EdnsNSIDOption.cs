@@ -12,13 +12,14 @@ namespace PeerTalk.Dns
     ///  The identity of the name server.
     /// </remarks>
     /// <seealso href="https://tools.ietf.org/html/rfc5001"/>
-    public class EdnsNSIDOption : EdnsOption
+    public sealed class EdnsNSIDOption : AEdnsOption
     {
         /// <summary>
         ///   Creates a new instance of the <see cref="EdnsNSIDOption"/> class.
         /// </summary>
         public EdnsNSIDOption()
         {
+            Id = [];
             Type = EdnsOptionType.NSID;
         }
 

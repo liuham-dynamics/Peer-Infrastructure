@@ -31,6 +31,7 @@ namespace PeerTalk.Dns
         /// <summary>
         ///   GOST R 34.11-94.
         /// </summary>
+        [Obsolete("Not supported anymore")]
         GostR34_11_94 = 3,
 
         /// <summary>

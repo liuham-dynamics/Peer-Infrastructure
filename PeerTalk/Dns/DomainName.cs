@@ -14,12 +14,14 @@ namespace PeerTalk.Dns
     /// </remarks>
     public class DomainName : IEquatable<DomainName>
     {
-        private const string dot = ".";
-        private const char dotChar = '.';
-        private const string escapedDot = @"\.";
-        private const string backslash = @"\";
-        private const char backslashChar = '\\';
-        private const string escapedBackslash = @"\092";
+        private const string _memberDot = ".";
+        private const char _memberDotChar = '.';
+        private const string _memberEscapedDot = @"\.";
+        private const string _memberBackslash = @"\";
+        private const char _memberBackslashChar = '\\';
+        private const string _memberEscapedBackslash = @"\092";
+
+        private readonly List<string> _memberLabels = [];
 
         /// <summary>
         ///   The root name space.
@@ -33,12 +35,10 @@ namespace PeerTalk.Dns
         ///   the root domain. The root domain does not have a formal name and its
         ///   label in the DNS hierarchy is an empty string.
         /// </remarks>
-        public static DomainName Root = new DomainName(string.Empty);
-
-        private List<string> labels = new List<string>();
+        public static readonly DomainName Root = new(string.Empty);
 
         /// <summary>
-        ///   A sequence of labels that make up the domain name.
+        ///   A sequence of _memberLabels that make up the domain name.
         /// </summary>
         /// <value>
         ///   A sequece of strings.
@@ -46,21 +46,21 @@ namespace PeerTalk.Dns
         /// <remarks>
         ///   The last label is the TLD (top level domain).
         /// </remarks>
-        public IReadOnlyList<string> Labels => labels;
+        public IReadOnlyList<string> Labels => _memberLabels;
 
         /// <summary>
         ///   Creates a new instance of the <see cref="DomainName"/> class from
         ///   the specified name.
         /// </summary>
         /// <param name="name">
-        ///   The dot separated labels; such as "example.org".
+        ///   The _memberDot separated _memberLabels; such as "example.org".
         /// </param>
         /// <remarks>
-        ///   The name can contain backslash to escape a character.
+        ///   The name can contain _memberBackslash to escape a character.
         ///   See <see href="https://tools.ietf.org/html/rfc4343">RFC 4343</see>
         ///   for the character escaping rules.
         ///   <note>
-        ///   To use us backslash in a domain name (highly unusaual), you must use a double backslash.
+        ///   To use us _memberBackslash in a domain name (highly unusaual), you must use a double _memberBackslash.
         ///   </note>
         /// </remarks>
         public DomainName(string name)
@@ -76,18 +76,18 @@ namespace PeerTalk.Dns
         ///   The <see cref="Labels"/>.
         /// </param>
         /// <remarks>
-        ///   The labels are not parsed; character escaping is not performed.
+        ///   The _memberLabels are not parsed; character escaping is not performed.
         /// </remarks>
         public DomainName(params string[] labels)
         {
-            this.labels.AddRange(labels);
+            this._memberLabels.AddRange(labels);
         }
 
         /// <summary>
-        ///   Combine multiple domain names to form one.
+        ///   Combine multiple domain _memberNames to form one.
         /// </summary>
         /// <param name="names">
-        ///   The domain names to join.
+        ///   The domain _memberNames to join.
         /// </param>
         /// <returns>
         ///   A new domain containing all the <paramref name="names"/>.
@@ -97,7 +97,7 @@ namespace PeerTalk.Dns
             var joinedName = new DomainName();
             foreach (var name in names)
             {
-                joinedName.labels.AddRange(name.Labels);
+                joinedName._memberLabels.AddRange(name.Labels);
             }
             return joinedName;
         }
@@ -106,14 +106,14 @@ namespace PeerTalk.Dns
         ///   Returns the textual representation.
         /// </summary>
         /// <returns>
-        ///   The concatenation of the <see cref="Labels"/> separated by a dot.
+        ///   The concatenation of the <see cref="Labels"/> separated by a _memberDot.
         /// </returns>
         /// <remarks>
-        ///   If a label contains a dot or backslash, then it is escaped with a backslash.
+        ///   If a label contains a _memberDot or _memberBackslash, then it is escaped with a _memberBackslash.
         /// </remarks>
         public override string ToString()
         {
-            return string.Join(dot, Labels.Select(EscapeLabel));
+            return string.Join(_memberDot, Labels.Select(EscapeLabel));
         }
 
         private string EscapeLabel(string label)
@@ -121,17 +121,17 @@ namespace PeerTalk.Dns
             var sb = new StringBuilder();
             foreach (var c in label)
             {
-                if (c == backslashChar)
+                if (c == _memberBackslashChar)
                 {
-                    sb.Append(escapedBackslash);
+                    sb.Append(_memberEscapedBackslash);
                 }
-                else if (c == dotChar)
+                else if (c == _memberDotChar)
                 {
-                    sb.Append(escapedDot);
+                    sb.Append(_memberEscapedDot);
                 }
                 else if (c <= 32 || c > 0x7E)
                 {
-                    sb.Append(backslashChar);
+                    sb.Append(_memberBackslashChar);
                     sb.Append(((int)c).ToString("000", CultureInfo.InvariantCulture));
                 }
                 else
@@ -189,19 +189,19 @@ namespace PeerTalk.Dns
         /// </returns>
         public bool IsSubdomainOf(DomainName domain)
         {
-            if (domain == null)
+            if (domain is null)
             {
                 return false;
             }
-            if (labels.Count <= domain.labels.Count)
+            if (_memberLabels.Count <= domain._memberLabels.Count)
             {
                 return false;
             }
-            var i = labels.Count - 1;
-            var j = domain.labels.Count - 1;
+            var i = _memberLabels.Count - 1;
+            var j = domain._memberLabels.Count - 1;
             for (; 0 <= j; --i, --j)
             {
-                if (!LabelsEqual(labels[i], domain.labels[j]))
+                if (!LabelsEqual(_memberLabels[i], domain._memberLabels[j]))
                 {
                     return false;
                 }
@@ -216,19 +216,19 @@ namespace PeerTalk.Dns
         ///   The domain name of the parent or <b>null</b> if
         ///   there is no parent; e.g. this is the root.
         /// </returns>
-        public DomainName Parent()
+        public DomainName? Parent()
         {
-            if (labels.Count == 0)
+            if (_memberLabels.Count == 0)
             {
-                return null;
+                return default;
             }
 
-            return new DomainName(labels.Skip(1).ToArray());
+            return new DomainName([.. _memberLabels.Skip(1)]);
         }
 
         private void Parse(string name)
         {
-            labels.Clear();
+            _memberLabels.Clear();
             var label = new StringBuilder();
             var n = name.Length;
             for (int i = 0; i < n; ++i)
@@ -254,9 +254,9 @@ namespace PeerTalk.Dns
                 }
 
                 // End of label?
-                if (c == dotChar)
+                if (c == _memberDotChar)
                 {
-                    labels.Add(label.ToString());
+                    _memberLabels.Add(label.ToString());
                     label.Clear();
                     continue;
                 }
@@ -266,7 +266,7 @@ namespace PeerTalk.Dns
             }
             if (label.Length > 0)
             {
-                labels.Add(label.ToString());
+                _memberLabels.Add(label.ToString());
             }
         }
 
@@ -277,28 +277,27 @@ namespace PeerTalk.Dns
         }
 
         /// <inheritdoc />
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             var that = obj as DomainName;
-            return (that != null)
-               && this.Equals(that);
+            return (that is not null) && this.Equals(that);
         }
 
         /// <inheritdoc />
-        public bool Equals(DomainName that)
+        public bool Equals(DomainName? that)
         {
             if (that is null)
             {
                 return false;
             }
-            var n = this.labels.Count;
-            if (n != that.labels.Count)
+            var n = this._memberLabels.Count;
+            if (n != that._memberLabels.Count)
             {
                 return false;
             }
             for (var i = 0; i < n; ++i)
             {
-                if (!LabelsEqual(this.labels[i], that.labels[i]))
+                if (!LabelsEqual(this._memberLabels[i], that._memberLabels[i]))
                 {
                     return false;
                 }
@@ -344,7 +343,7 @@ namespace PeerTalk.Dns
         }
 
         /// <summary>
-        ///   Determines if the two domain name labels are equal.
+        ///   Determines if the two domain name _memberLabels are equal.
         /// </summary>
         /// <param name="a">A domain name label</param>
         /// <param name="b">A domain name label</param>

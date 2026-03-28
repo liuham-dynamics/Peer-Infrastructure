@@ -3,32 +3,29 @@ using SimpleBase;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Net;
 using System.Text;
 
 namespace PeerTalk.Dns
 {
     /// <summary>
-    ///   Methods to read DNS data items encoded in the presentation (text) format.
+    ///   Methods to read DNS data items encoded in the presentation (_memberTextReader) format.
     /// </summary>
     public class PresentationReader
     {
-        private static readonly DateTime UnixEpoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private static readonly DateTime _memberUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 
-        private readonly System.IO.TextReader text;
-        private TimeSpan? defaultTTL = null;
-        private DomainName defaultDomainName = null;
-        private int parenLevel = 0;
-        private int previousChar = '\n';  // Assume a newline
-        private bool eolSeen = false;
-
-        /// <summary>
-        ///   Indicates that the token is at the begining of the line without
-        ///   any leading whitespace.
-        /// </summary>
-        private bool tokenStartsNewLine = false;
+        private readonly TextReader _memberTextReader;
+        private TimeSpan? _memberDefaultTTL = null;
+        private DomainName _memberDefaultDomainName = default;
+        private int _memberParenLevel = 0;
+        private int _memberPreviousChar = '\n';  // Assume a newline
+        private bool _memberEolSeen = false;
+        // Indicates that the token is at the begining of the line without any leading whitespace.
+        private bool _memberTokenStartsNewLine = false;
 
         /// <summary>
-        ///   The reader relative position within the stream.
+        ///   The reader relative position within the _memberStream.
         /// </summary>
         public int Position;
 
@@ -41,7 +38,7 @@ namespace PeerTalk.Dns
         /// </param>
         public PresentationReader(TextReader text)
         {
-            this.text = text;
+            this._memberTextReader = text;
         }
 
         /// <summary>
@@ -104,7 +101,9 @@ namespace PeerTalk.Dns
         {
             // If an absolute name.
             if (name.EndsWith("."))
-                return new DomainName(name.Substring(0, name.Length - 1));
+            {
+                return new DomainName(name[..^1]);
+            }
 
             // Then its a relative name.
             return DomainName.Join(new DomainName(name), Origin);
@@ -173,7 +172,10 @@ namespace PeerTalk.Dns
         /// <returns>
         ///   An <see cref="IPAddress"/>.
         /// </returns>
-        public IPAddress ReadIPAddress(int length = 4) => IPAddress.Parse(ReadToken());
+        public IPAddress ReadIPAddress(int length = 4)
+        {
+            return IPAddress.Parse(ReadToken());
+        }
 
         /// <summary>
         ///   Read a DNS Type.
@@ -189,7 +191,7 @@ namespace PeerTalk.Dns
             {
                 return (DnsType)ushort.Parse(token.AsSpan(4), CultureInfo.InvariantCulture);
             }
-            return (DnsType)Enum.Parse(typeof(DnsType), token);
+            return Enum.Parse<DnsType>(token);
         }
 
         /// <summary>
@@ -208,13 +210,11 @@ namespace PeerTalk.Dns
             if (token.Length == 14)
             {
                 return DateTime.ParseExact(
-                    token,
-                    "yyyyMMddHHmmss",
-                    CultureInfo.InvariantCulture,
+                    token, "yyyyMMddHHmmss", CultureInfo.InvariantCulture,
                     DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal);
             }
 
-            return UnixEpoch.AddSeconds(ulong.Parse(token, CultureInfo.InvariantCulture));
+            return _memberUnixEpoch.AddSeconds(ulong.Parse(token, CultureInfo.InvariantCulture));
         }
 
         /// <summary>
@@ -232,10 +232,15 @@ namespace PeerTalk.Dns
             var leadin = ReadToken();
 
             if (leadin != "#")
+            {
                 throw new FormatException($"Expected RDATA leadin '\\#', not '{leadin}'.");
+            }
+
             var length = ReadUInt32();
             if (length == 0)
-                return Array.Empty<byte>();
+            {
+                return [];
+            }
 
             // Get the hex string.
             var sb = new StringBuilder();
@@ -248,8 +253,11 @@ namespace PeerTalk.Dns
                     throw new FormatException($"The hex word ('{word}') must have an even number of digits.");
                 sb.Append(word);
             }
+
             if (sb.Length != length * 2)
+            {
                 throw new FormatException("Wrong number of RDATA hex digits.");
+            }
 
             // Convert hex string into byte array.
             try
@@ -283,23 +291,23 @@ namespace PeerTalk.Dns
         ///   </para>
         /// </remarks>
         /// <exception cref="InvalidDataException"></exception>
-        public ResourceRecord ReadResourceRecord()
+        public ResourceRecord? ReadResourceRecord()
         {
-            DomainName domainName = defaultDomainName;
+            DomainName domainName = _memberDefaultDomainName;
             DnsClass klass = DnsClass.IN;
-            TimeSpan? ttl = defaultTTL;
+            TimeSpan? ttl = _memberDefaultTTL;
             DnsType? type = null;
 
             while (!type.HasValue)
             {
                 var token = ReadToken(ignoreEscape: true);
-                if (token?.Length == 0)
+                if (string.IsNullOrEmpty(token))
                 {
-                    return null;
+                    return default;
                 }
 
-                // Domain names and directives must be at the start of a line.
-                if (tokenStartsNewLine)
+                // Domain _memberNames and directives must be at the start of a line.
+                if (_memberTokenStartsNewLine)
                 {
                     switch (token)
                     {
@@ -308,17 +316,17 @@ namespace PeerTalk.Dns
                             break;
 
                         case "$TTL":
-                            defaultTTL = ttl = ReadTimeSpan32();
+                            _memberDefaultTTL = ttl = ReadTimeSpan32();
                             break;
 
                         case "@":
                             domainName = Origin;
-                            defaultDomainName = domainName;
+                            _memberDefaultDomainName = domainName;
                             break;
 
                         default:
                             domainName = MakeAbsoluteDomainName(token);
-                            defaultDomainName = domainName;
+                            _memberDefaultDomainName = domainName;
                             break;
                     }
                     continue;
@@ -380,37 +388,37 @@ namespace PeerTalk.Dns
         public bool IsEndOfLine()
         {
             int c;
-            while (parenLevel > 0)
+            while (_memberParenLevel > 0)
             {
-                while ((c = text.Peek()) >= 0)
+                while ((c = _memberTextReader.Peek()) >= 0)
                 {
                     if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
                     {
-                        c = text.Read();
-                        previousChar = c;
+                        c = _memberTextReader.Read();
+                        _memberPreviousChar = c;
                         continue;
                     }
                     if (c == ')')
                     {
-                        --parenLevel;
-                        c = text.Read();
-                        previousChar = c;
+                        --_memberParenLevel;
+                        c = _memberTextReader.Read();
+                        _memberPreviousChar = c;
                         break;
                     }
                     return false;
                 }
             }
 
-            if (eolSeen)
+            if (_memberEolSeen)
                 return true;
 
-            while ((c = text.Peek()) >= 0)
+            while ((c = _memberTextReader.Peek()) >= 0)
             {
                 // Skip space or tab.
                 if (c == ' ' || c == '\t')
                 {
-                    c = text.Read();
-                    previousChar = c;
+                    c = _memberTextReader.Read();
+                    _memberPreviousChar = c;
                     continue;
                 }
 
@@ -428,9 +436,9 @@ namespace PeerTalk.Dns
             bool skipWhitespace = true;
             bool inquote = false;
             bool incomment = false;
-            eolSeen = false;
+            _memberEolSeen = false;
 
-            while ((c = text.Read()) >= 0)
+            while ((c = _memberTextReader.Read()) >= 0)
             {
                 // Comments are terminated by a newline.
                 if (incomment)
@@ -440,7 +448,7 @@ namespace PeerTalk.Dns
                         incomment = false;
                         skipWhitespace = true;
                     }
-                    previousChar = c;
+                    _memberPreviousChar = c;
                     continue;
                 }
 
@@ -451,30 +459,30 @@ namespace PeerTalk.Dns
                     {
                         if (sb.Length == 0)
                         {
-                            tokenStartsNewLine = previousChar == '\r' || previousChar == '\n';
+                            _memberTokenStartsNewLine = _memberPreviousChar == '\r' || _memberPreviousChar == '\n';
                         }
                         sb.Append((char)c);
-                        previousChar = c;
+                        _memberPreviousChar = c;
 
-                        c = text.Read();
+                        c = _memberTextReader.Read();
                         if (0 <= c)
                         {
                             sb.Append((char)c);
-                            previousChar = c;
+                            _memberPreviousChar = c;
                         }
                         continue;
                     }
-                    previousChar = c;
+                    _memberPreviousChar = c;
 
                     // Handle decimal escapes \DDD
                     int ndigits = 0;
                     int ddd = 0;
                     for (; ndigits <= 3; ++ndigits)
                     {
-                        c = text.Peek();
+                        c = _memberTextReader.Peek();
                         if ('0' <= c && c <= '9')
                         {
-                            text.Read();
+                            _memberTextReader.Read();
                             ddd = (ddd * 10) + (c - '0');
                             if (ddd > 0xFF)
                                 throw new FormatException("Invalid value.");
@@ -484,11 +492,11 @@ namespace PeerTalk.Dns
                             break;
                         }
                     }
-                    c = (ndigits > 0) ? ddd : text.Read();
+                    c = (ndigits > 0) ? ddd : _memberTextReader.Read();
 
                     sb.Append((char)c);
                     skipWhitespace = false;
-                    previousChar = (char)c;
+                    _memberPreviousChar = (char)c;
                     continue;
                 }
 
@@ -504,25 +512,25 @@ namespace PeerTalk.Dns
                     {
                         sb.Append((char)c);
                     }
-                    previousChar = c;
+                    _memberPreviousChar = c;
                     continue;
                 }
                 if (c == '"')
                 {
                     inquote = true;
-                    previousChar = c;
+                    _memberPreviousChar = c;
                     continue;
                 }
 
                 // Ignore parens.
                 if (c == '(')
                 {
-                    ++parenLevel;
+                    ++_memberParenLevel;
                     c = ' ';
                 }
                 if (c == ')')
                 {
-                    --parenLevel;
+                    --_memberParenLevel;
                     c = ' ';
                 }
 
@@ -531,7 +539,7 @@ namespace PeerTalk.Dns
                 {
                     if (char.IsWhiteSpace((char)c))
                     {
-                        previousChar = c;
+                        _memberPreviousChar = c;
                         continue;
                     }
                     skipWhitespace = false;
@@ -540,8 +548,8 @@ namespace PeerTalk.Dns
                 // Trailing whitespace, ends the token.
                 if (char.IsWhiteSpace((char)c))
                 {
-                    previousChar = c;
-                    eolSeen = c == '\r' || c == '\n';
+                    _memberPreviousChar = c;
+                    _memberEolSeen = c == '\r' || c == '\n';
                     break;
                 }
 
@@ -549,17 +557,17 @@ namespace PeerTalk.Dns
                 if (c == ';')
                 {
                     incomment = true;
-                    previousChar = c;
+                    _memberPreviousChar = c;
                     continue;
                 }
 
                 // Default handling, use the character as part of the token.
                 if (sb.Length == 0)
                 {
-                    tokenStartsNewLine = previousChar == '\r' || previousChar == '\n';
+                    _memberTokenStartsNewLine = _memberPreviousChar == '\r' || _memberPreviousChar == '\n';
                 }
                 sb.Append((char)c);
-                previousChar = c;
+                _memberPreviousChar = c;
             }
 
             return sb.ToString();

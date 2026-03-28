@@ -115,7 +115,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   Defaults to an empty list.
         /// </value>
-        public UpdatePrerequisiteList Prerequisites { get; } = new UpdatePrerequisiteList();
+        public UpdatePrerequisiteList Prerequisites { get; } = [];
 
         /// <summary>
         ///   Resource records to be added or deleted.
@@ -123,7 +123,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   Defaults to an empty list.
         /// </value>
-        public UpdateResourceList Updates { get; } = new UpdateResourceList();
+        public UpdateResourceList Updates { get; } = [];
 
         /// <summary>
         ///   The list of additional resource records.
@@ -140,7 +140,7 @@ namespace PeerTalk.Dns
         ///   server implementor.
         ///   </para>
         /// </remarks>
-        public List<ResourceRecord> AdditionalResources { get; } = new List<ResourceRecord>();
+        public List<ResourceRecord> AdditionalResources { get; } = [];
 
         /// <summary>
         ///   Create a response for the update message.

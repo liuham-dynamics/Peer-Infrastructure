@@ -11,7 +11,7 @@ namespace PeerTalk.Dns
     /// <remarks>
     ///   Codes are specified in <see href="https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11">IANA - DNS EDNS0 Option Codes</see>.
     /// </remarks>
-    /// <seealso cref="EdnsOption.Type"/>
+    /// <seealso cref="AEdnsOption.Type"/>
     /// <seealso cref="OPTRecord"/>
     /// <seealso cref="EdnsOptionRegistry"/>
     public enum EdnsOptionType : ushort

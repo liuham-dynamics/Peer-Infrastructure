@@ -133,7 +133,7 @@ namespace PeerTalk.Dns.Records
         /// <value>
         ///   The EDNS option sequence.
         /// </value>
-        public List<EdnsOption> Options { get; set; } = new List<EdnsOption>();
+        public List<AEdnsOption> Options { get; set; } = new List<AEdnsOption>();
 
         /// <inheritdoc />
         public override void ReadData(DnsWireReader reader, int length)
@@ -144,8 +144,8 @@ namespace PeerTalk.Dns.Records
                 var type = (EdnsOptionType)reader.ReadUInt16();
                 int olength = reader.ReadUInt16();
 
-                EdnsOption option;
-                if (EdnsOptionRegistry.Options.TryGetValue(type, out Func<EdnsOption> maker))
+                AEdnsOption option;
+                if (EdnsOptionRegistry.Options.TryGetValue(type, out Func<AEdnsOption> maker))
                 {
                     option = maker();
                 }

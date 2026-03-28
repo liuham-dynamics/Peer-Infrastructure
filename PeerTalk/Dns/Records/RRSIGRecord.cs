@@ -39,7 +39,7 @@ namespace PeerTalk.Dns.Records
         public SecurityAlgorithm Algorithm { get; set; }
 
         /// <summary>
-        ///   The number of labels in the original RRSIG RR owner name.
+        ///   The number of _memberLabels in the original RRSIG RR owner name.
         /// </summary>
         /// <remarks>
         ///   The significance of this field is that a validator

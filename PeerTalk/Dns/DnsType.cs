@@ -30,14 +30,14 @@ namespace PeerTalk.Dns
         /// A mail destination (OBSOLETE - use MX).
         /// </summary>
         /// <seealso href="https://tools.ietf.org/html/rfc1035">RFC 1035</seealso>
-        [Obsolete("Use MX")]
+        [Obsolete("Use MX instead")]
         MD = 3,
 
         /// <summary>
         /// A mail forwarder (OBSOLETE - use MX).
         /// </summary>
         /// <seealso href="https://tools.ietf.org/html/rfc1035">RFC 1035</seealso>
-        [Obsolete("Use MX")]
+        [Obsolete("Use MX instead")]
         MF = 4,
 
         /// <summary>
@@ -201,7 +201,7 @@ namespace PeerTalk.Dns
         NSEC3 = 50,
 
         /// <summary>
-        ///   Parameters needed by authoritative servers to calculate hashed owner names.
+        ///   Parameters needed by authoritative servers to calculate hashed owner _memberNames.
         /// </summary>
         /// <seealso href="https://tools.ietf.org/html/rfc5155#section-4"/>
         /// <seealso cref="NSEC3PARAMRecord"/>
@@ -237,7 +237,7 @@ namespace PeerTalk.Dns
         ///  A request for mail agent RRs (Obsolete - see MX).
         /// </summary>
         /// <seealso href="https://tools.ietf.org/html/rfc1035">RFC 1035</seealso>
-        [Obsolete("Use MX")]
+        [Obsolete("Use MX instead")]
         MAILA = 254,
 
         /// <summary>

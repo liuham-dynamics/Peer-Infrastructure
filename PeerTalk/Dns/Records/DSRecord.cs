@@ -126,7 +126,7 @@ namespace PeerTalk.Dns.Records
             Algorithm = (SecurityAlgorithm)reader.ReadByte();
             HashAlgorithm = (DigestType)reader.ReadByte();
 
-            // Whitespace is allowed within the hexadecimal text.
+            // Whitespace is allowed within the hexadecimal _memberTextReader.
             var sb = new StringBuilder();
             while (!reader.IsEndOfLine())
             {

@@ -9,16 +9,16 @@ namespace PeerTalk.Dns
     ///   An unknown EDNS option.
     /// </summary>
     /// <remarks>
-    ///   When an <see cref="EdnsOption"/> is read with a <see cref="EdnsOption.Type"/> that
+    ///   When an <see cref="AEdnsOption"/> is read with a <see cref="AEdnsOption.Type"/> that
     ///   is not <see cref="EdnsOptionRegistry">registered</see>, then this is used
     ///   to deserialise the information.
     /// </remarks>
-    public class UnknownEdnsOption : EdnsOption
+    public sealed class UnknownEdnsOption : AEdnsOption
     {
         /// <summary>
         ///   Specfic data for the option.
         /// </summary>
-        public byte[] Data { get; set; }
+        public byte[] Data { get; set; } = [];
 
         /// <inheritdoc />
         public override void ReadData(DnsWireReader reader, int length)

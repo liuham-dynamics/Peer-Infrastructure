@@ -109,7 +109,7 @@ namespace PeerTalk.Dns
         }
 
         /// <summary>
-        ///   Reads the DNS object from a stream.
+        ///   Reads the DNS object from a _memberStream.
         /// </summary>
         /// <param name="stream">
         ///   The source for the DNS object.
@@ -138,7 +138,7 @@ namespace PeerTalk.Dns
         }
 
         /// <summary>
-        ///   Writes the DNS object to a stream.
+        ///   Writes the DNS object to a _memberStream.
         /// </summary>
         /// <param name="stream">
         ///   The destination for the DNS object.

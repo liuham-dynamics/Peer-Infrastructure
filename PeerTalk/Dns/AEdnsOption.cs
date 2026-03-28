@@ -19,7 +19,7 @@ namespace PeerTalk.Dns
     /// </remarks>
     /// <seealso cref="OPTRecord"/>
     /// <seealso href="https://www.iana.org/assignments/dns-parameters/dns-parameters.xhtml#dns-parameters-11">IANA - DNS EDNS0 Option Codes</seealso>.
-    public abstract class EdnsOption
+    public abstract class AEdnsOption
     {
         /// <summary>
         ///   The option type.
@@ -33,7 +33,7 @@ namespace PeerTalk.Dns
         public EdnsOptionType Type { get; set; }
 
         /// <summary>
-        ///   Read the data that is specific to the option <see cref="EdnsOption.Type"/>.
+        ///   Read the data that is specific to the option <see cref="AEdnsOption.Type"/>.
         /// </summary>
         /// <param name="reader">
         ///   The source of the option's data.
@@ -47,7 +47,7 @@ namespace PeerTalk.Dns
         public abstract void ReadData(DnsWireReader reader, int length);
 
         /// <summary>
-        ///   Write the data that is specific to the resource record <see cref="EdnsOption.Type"/>.
+        ///   Write the data that is specific to the resource record <see cref="AEdnsOption.Type"/>.
         /// </summary>
         /// <param name="writer">
         ///   The destination for the option's data.

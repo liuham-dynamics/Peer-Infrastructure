@@ -9,7 +9,7 @@ namespace PeerTalk.Dns.Records
     ///   Text strings.
     /// </summary>
     /// <remarks>
-    ///   TXT RRs are used to hold descriptive text.  The semantics of the text
+    ///   TXT RRs are used to hold descriptive _memberTextReader.  The semantics of the _memberTextReader
     ///   depends on the domain where it is found.
     /// </remarks>
     public class TXTRecord : ResourceRecord

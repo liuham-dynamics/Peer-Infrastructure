@@ -8,13 +8,12 @@ using System.Text;
 namespace PeerTalk.Dns
 {
     /// <summary>
-    ///   Methods to write DNS data items encoded in the presentation (text) format.
+    ///   Methods to write DNS data items encoded in the presentation (_memberTextReader) format.
     /// </summary>
     public sealed class PresentationWriter
     {
-        private static readonly DateTime UnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-
-        private readonly TextWriter text;
+        private static readonly DateTime _memberUnixEpoch = new(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        private readonly TextWriter _memberTextReader;
 
         /// <summary>
         ///   Creates a new instance of the <see cref="PresentationWriter"/> using the
@@ -25,7 +24,7 @@ namespace PeerTalk.Dns
         /// </param>
         public PresentationWriter(TextWriter text)
         {
-            this.text = text;
+            this._memberTextReader = text;
         }
 
         /// <summary>
@@ -33,7 +32,7 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteSpace()
         {
-            text.Write(' ');
+            _memberTextReader.Write(' ');
         }
 
         /// <summary>
@@ -41,7 +40,7 @@ namespace PeerTalk.Dns
         /// </summary>
         public void WriteEndOfLine()
         {
-            text.Write("\r\n");
+            _memberTextReader.Write("\r\n");
         }
 
         /// <summary>
@@ -55,7 +54,7 @@ namespace PeerTalk.Dns
         /// </param>
         public void WriteByte(byte value, bool appendSpace = true)
         {
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();
@@ -73,7 +72,7 @@ namespace PeerTalk.Dns
         /// </param>
         public void WriteUInt16(ushort value, bool appendSpace = true)
         {
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();
@@ -91,7 +90,7 @@ namespace PeerTalk.Dns
         /// </param>
         public void WriteUInt32(uint value, bool appendSpace = true)
         {
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();
@@ -114,12 +113,9 @@ namespace PeerTalk.Dns
         {
             bool needQuote = false;
 
-            if (value == null)
-            {
-                value = string.Empty;
-            }
+            value ??= string.Empty;
 
-            if (value == string.Empty)
+            if (string.IsNullOrWhiteSpace(value))
             {
                 needQuote = true;
             }
@@ -133,14 +129,14 @@ namespace PeerTalk.Dns
 
             if (needQuote)
             {
-                text.Write('"');
+                _memberTextReader.Write('"');
             }
 
-            text.Write(value);
+            _memberTextReader.Write(value);
 
             if (needQuote)
             {
-                text.Write('"');
+                _memberTextReader.Write('"');
             }
             if (appendSpace)
             {
@@ -162,7 +158,7 @@ namespace PeerTalk.Dns
         /// </remarks>
         public void WriteStringUnencoded(string value, bool appendSpace = true)
         {
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();
@@ -284,9 +280,9 @@ namespace PeerTalk.Dns
         {
             if (!Enum.IsDefined(value))
             {
-                text.Write("TYPE");
+                _memberTextReader.Write("TYPE");
             }
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();
@@ -310,9 +306,9 @@ namespace PeerTalk.Dns
         {
             if (!Enum.IsDefined(value))
             {
-                text.Write("CLASS");
+                _memberTextReader.Write("CLASS");
             }
-            text.Write(value);
+            _memberTextReader.Write(value);
             if (appendSpace)
             {
                 WriteSpace();

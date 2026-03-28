@@ -65,8 +65,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   <b>true</b> for a query; otherwise, <b>false</b> for a response.
         /// </value>
-        public bool IsQuery
-        { get { return !QR; } }
+        public bool IsQuery { get { return !QR; } }
 
         /// <summary>
         ///   Determines if the message is a response to a query.
@@ -74,8 +73,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   <b>false</b> for a query; otherwise, <b>true</b> for a response.
         /// </value>
-        public bool IsResponse
-        { get { return QR; } }
+        public bool IsResponse { get { return QR; } }
 
         /// <summary>
         ///   The requested operation.
@@ -101,8 +99,10 @@ namespace PeerTalk.Dns
             get
             {
                 var opt = AdditionalRecords.OfType<OPTRecord>().FirstOrDefault();
-                if (opt == null)
+                if (opt is null)
+                {
                     return (MessageOperation)opcode4;
+                }
                 return (MessageOperation)(((ushort)opt.Opcode8 << 4) | opcode4);
             }
             set
@@ -114,13 +114,12 @@ namespace PeerTalk.Dns
                 if ((extendedOpcode & 0xff0) == 0)
                 {
                     opcode4 = (byte)extendedOpcode;
-                    if (opt != null)
-                        opt.Opcode8 = 0;
+                    opt?.Opcode8 = 0;
                     return;
                 }
 
                 // Extended opcode, needs an OPT resource record.
-                if (opt == null)
+                if (opt is null)
                 {
                     opt = new OPTRecord();
                     AdditionalRecords.Add(opt);
@@ -138,7 +137,7 @@ namespace PeerTalk.Dns
         /// </para>
         /// <para>
         ///    Note that the contents of the answer section may have
-        ///    multiple owner names because of aliases.The AA bit
+        ///    multiple owner _memberNames because of aliases.The AA bit
         ///    corresponds to the name which matches the query name, or
         ///    the first owner name in the answer section.
         /// </para>
@@ -239,7 +238,7 @@ namespace PeerTalk.Dns
             set
             {
                 var opt = AdditionalRecords.OfType<OPTRecord>().FirstOrDefault();
-                if (opt == null)
+                if (opt is null)
                 {
                     opt = new OPTRecord();
                     AdditionalRecords.Add(opt);
@@ -262,7 +261,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   A list of questions.
         /// </value>
-        public List<Question> Questions { get; } = new List<Question>();
+        public List<Question> Questions { get; } = [];
 
         /// <summary>
         ///   The list of answers.
@@ -270,7 +269,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   A list of answers.
         /// </value>
-        public List<ResourceRecord> Answers { get; set; } = new List<ResourceRecord>();
+        public List<ResourceRecord> Answers { get; set; } = [];
 
         /// <summary>
         ///   The list of authority records.
@@ -278,7 +277,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   A list of authority resource records.
         /// </value>
-        public List<ResourceRecord> AuthorityRecords { get; set; } = new List<ResourceRecord>();
+        public List<ResourceRecord> AuthorityRecords { get; set; } = [];
 
         /// <summary>
         ///   The list of additional records.
@@ -286,7 +285,7 @@ namespace PeerTalk.Dns
         /// <value>
         ///   A list of additional resource records.
         /// </value>
-        public List<ResourceRecord> AdditionalRecords { get; set; } = new List<ResourceRecord>();
+        public List<ResourceRecord> AdditionalRecords { get; set; } = [];
 
         /// <summary>
         ///   Create a response for the query message.
@@ -465,7 +464,7 @@ namespace PeerTalk.Dns
             }
         }
 
-        private void Stringify(StringWriter s, string title, List<ResourceRecord> records)
+        private static void Stringify(StringWriter s, string title, List<ResourceRecord> records)
         {
             s.WriteLine();
             s.Write(";; ");

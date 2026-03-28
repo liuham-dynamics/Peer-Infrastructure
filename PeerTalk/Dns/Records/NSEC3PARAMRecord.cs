@@ -7,7 +7,7 @@ using System.Text;
 namespace PeerTalk.Dns.Records
 {
     /// <summary>
-    ///   Parameters needed by authoritative servers to calculate hashed owner names.
+    ///   Parameters needed by authoritative servers to calculate hashed owner _memberNames.
     /// </summary>
     /// <remarks>
     ///   Defined by <see href="https://tools.ietf.org/html/rfc5155#section-4">RFC 5155 - DNS Security (DNSSEC) Hashed Authenticated Denial of Existence</see>.
